@@ -1,6 +1,6 @@
 import type { RequestHandler, Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { env } from "../config/envConfig";
+import { env } from "@repo/config";
 import {ApiError} from "@repo/helpers";
 
 export const authMiddleWare: RequestHandler = (

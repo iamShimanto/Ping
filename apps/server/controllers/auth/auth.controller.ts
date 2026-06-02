@@ -1,9 +1,9 @@
 import { RequestHandler } from "express";
-import { env } from "../../config/envConfig";
+import { env } from "@repo/config";
 import User from "../../models/auth/auth.models";
-import { ApiError } from "@repo/helpers"
+import { ApiError } from "@repo/helpers";
 import { signAccessToken } from "../../utils/tokens";
-import {successResponse} from "@repo/helpers";
+import { successResponse } from "@repo/helpers";
 
 export const register: RequestHandler = async (req, res) => {
   const { fullName, email, password } = req.body;
@@ -17,8 +17,12 @@ export const register: RequestHandler = async (req, res) => {
   }
 
   const user = await User.create({ fullName, email, password });
-  successResponse(res, "User registered successfully", 201, { userId: user._id, fullName: user.fullName, email: user.email });
-}
+  successResponse(res, "User registered successfully", 201, {
+    userId: user._id,
+    fullName: user.fullName,
+    email: user.email,
+  });
+};
 
 export const login: RequestHandler = async (req, res) => {
   const { email, password } = req.body;
@@ -34,7 +38,7 @@ export const login: RequestHandler = async (req, res) => {
     throw new ApiError(401, "Invalid credentials");
   }
 
-  const token = signAccessToken({ userId: user._id , email: user.email });
+  const token = signAccessToken({ userId: user._id, email: user.email });
   res.cookie("jwt_access", token, {
     httpOnly: true,
     secure: env.NODE_ENV === "production",
@@ -42,10 +46,14 @@ export const login: RequestHandler = async (req, res) => {
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
 
-  successResponse(res, "User logged in successfully", 200, { userId: user._id, fullName: user.fullName, email: user.email });
-}
+  successResponse(res, "User logged in successfully", 200, {
+    userId: user._id,
+    fullName: user.fullName,
+    email: user.email,
+  });
+};
 
 export const logout: RequestHandler = async (req, res) => {
   res.clearCookie("jwt_access");
   successResponse(res, "User logged out successfully", 200, null);
-}
+};

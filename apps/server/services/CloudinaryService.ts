@@ -1,4 +1,4 @@
-import cloudinary from "../config/cloudinary";
+import { cloudinary } from "@repo/config";
 
 export const uploadToCloudinary = async (
   file: Express.Multer.File,

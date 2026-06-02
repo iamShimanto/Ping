@@ -1,5 +1,5 @@
 import os from "os";
-import { env } from "../config/envConfig";
+import { env } from "@repo/config";
 
 // ─── ANSI color codes (no extra dependency needed) ───────────────────────────
 const c = {

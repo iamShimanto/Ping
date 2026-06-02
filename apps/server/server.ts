@@ -1,9 +1,9 @@
 import dotenv from "dotenv";
 import http from "http";
 import app from "./app";
-import { dbConfig } from "./config/dbConfig";
-import { env } from "./config/envConfig";
-import redis from "./config/redis";
+import { dbConfig } from "@repo/config";
+import { env } from "@repo/config";
+import { redis } from "@repo/config";
 import { closeSocketServer, initSocketServer } from "./config/socket";
 import { printStartupLog } from "./utils/startupLogger";
 dotenv.config();
@@ -48,10 +48,7 @@ async function gracefulShutdown(
   }, SHUTDOWN_TIMEOUT_MS).unref();
 }
 
-
-
 async function startServer() {
-
   process.on("uncaughtException", (error: Error) => {
     console.error("[uncaughtException] Unhandled exception:", error);
     process.exit(1);

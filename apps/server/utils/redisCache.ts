@@ -1,4 +1,4 @@
-import redis from "../config/redis";
+import { redis } from "@repo/config";
 
 type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
 

@@ -4,11 +4,13 @@ import routes from "./routes";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import morgan from "morgan";
-import { env } from "./config/envConfig";
+const dns = require("dns");
+import { env } from "@repo/config";
 import { errorHandler } from "./middleware/errorHandler";
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+dns.setServers(["1.1.1.1", "1.0.0.1"]);
 app.set("trust proxy", 1);
 app.use(cookieParser());
 app.use(morgan("dev"));
