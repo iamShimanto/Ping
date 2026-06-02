@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import type { Socket } from "socket.io";
-import { env } from "../config/envConfig";
+import { env } from "@repo/config";
 
 export interface JwtPayload {
   userId: string;

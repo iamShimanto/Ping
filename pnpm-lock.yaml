@@ -20,6 +20,9 @@ importers:
 
   apps/server:
     dependencies:
+      '@repo/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@repo/helpers':
         specifier: workspace:*
         version: link:../../packages/helpers
@@ -184,6 +187,40 @@ importers:
       vite:
         specifier: ^8.0.12
         version: 8.0.16(@types/node@24.12.4)(jiti@2.7.0)
+
+  packages/config:
+    dependencies:
+      '@types/express':
+        specifier: ^5.0.6
+        version: 5.0.6
+      '@types/node':
+        specifier: ^25.0.3
+        version: 25.9.1
+      cloudinary:
+        specifier: ^2.9.0
+        version: 2.10.0
+      dotenv:
+        specifier: ^17.2.3
+        version: 17.4.2
+      envalid:
+        specifier: ^8.1.1
+        version: 8.1.1
+      express:
+        specifier: ^5.2.1
+        version: 5.2.1
+      ioredis:
+        specifier: ^5.9.3
+        version: 5.11.0
+      mongodb:
+        specifier: ^7.0.0
+        version: 7.2.0
+      mongoose:
+        specifier: ^9.1.1
+        version: 9.6.3
+    devDependencies:
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
 
   packages/helpers:
     dependencies:

@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import { env } from "../config/envConfig";
+import { env } from "@repo/config";
 import { Types } from "mongoose";
 
 export interface ITokenPayload {

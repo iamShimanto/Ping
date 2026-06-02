@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction, RequestHandler } from "express";
-import redis from "../config/redis";
+import {redis} from "@repo/config";
 
 type RateLimitOptions = {
   limit: number;
