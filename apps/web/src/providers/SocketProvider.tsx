@@ -1,46 +1,78 @@
-import { type ReactNode, useEffect } from "react";
-import { useDispatch } from "react-redux";
+import { type ReactNode, useEffect, useCallback } from "react";
 import { socket } from "../socket/socket";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
-    resetSocketState,
-    setSocketConnected,
-    setSocketId,
+  resetSocketState,
+  setSocketConnected,
+  setSocketId,
 } from "../store/slices/socketSlice";
+import { toast } from "@repo/ui";
 
-interface SocketProviderProps {
-    children: ReactNode;
+interface Props {
+  children: ReactNode;
 }
 
-const SocketProvider = ({ children }: SocketProviderProps) => {
-    const dispatch = useDispatch();
+const SocketProvider = ({ children }: Props) => {
+  const dispatch = useAppDispatch();
+  const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
 
-    useEffect(() => {
-        socket.connect();
+  const handleConnect = useCallback(() => {
+    dispatch(setSocketConnected(true));
+    dispatch(setSocketId(socket.id ?? null));
+  }, [dispatch]);
 
-        const handleConnect = () => {
-            dispatch(setSocketConnected(true));
-            dispatch(setSocketId(socket.id || null));
-            console.log("Socket connected:", socket.id);
-        };
+  const handleDisconnect = useCallback(
+    (reason: string) => {
+      dispatch(setSocketConnected(false));
+      dispatch(setSocketId(null));
+      console.log("[Socket] Disconnected:", reason);
+    },
+    [dispatch],
+  );
 
-        const handleDisconnect = () => {
-            dispatch(setSocketConnected(false));
-            dispatch(setSocketId(null));
-            console.log("Socket disconnected");
-        };
+  const handleConnectError = useCallback((err: Error) => {
+    console.warn("[Socket] Connect error:", err.message);
 
-        socket.on("connect", handleConnect);
-        socket.on("disconnect", handleDisconnect);
+    if (err.message === "AUTH_TOKEN_EXPIRED") {
 
-        return () => {
-            socket.off("connect", handleConnect);
-            socket.off("disconnect", handleDisconnect);
-            socket.disconnect();
-            dispatch(resetSocketState());
-        };
-    }, [dispatch]);
+      setTimeout(() => {
+        if (!socket.connected) socket.connect();
+      }, 3000);
+      return;
+    }
 
-    return children;
+    if (err.message === "AUTH_TOKEN_MISSING" || err.message === "AUTH_TOKEN_INVALID") {
+      // Not authenticated — disconnect cleanly, route guard will redirect
+      socket.disconnect();
+      return;
+    }
+
+    toast.error("Real-time connection failed. Retrying…", "Socket");
+  }, []);
+
+  useEffect(() => {
+    socket.on("connect", handleConnect);
+    socket.on("disconnect", handleDisconnect);
+    socket.on("connect_error", handleConnectError);
+
+    return () => {
+      socket.off("connect", handleConnect);
+      socket.off("disconnect", handleDisconnect);
+      socket.off("connect_error", handleConnectError);
+    };
+  }, [handleConnect, handleDisconnect, handleConnectError]);
+
+  // Connect when authenticated, disconnect when logged out
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (!socket.connected) socket.connect();
+    } else {
+      if (socket.connected) socket.disconnect();
+      dispatch(resetSocketState());
+    }
+  }, [isAuthenticated, dispatch]);
+
+  return <>{children}</>;
 };
 
 export default SocketProvider;

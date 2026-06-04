@@ -6,6 +6,8 @@ export interface IUser {
   email: string;
   password: string;
   avatar?: string;
+  avatarPublicId?: string;
+  refreshToken?: string;
 }
 
 export interface IUserMethods {
@@ -20,6 +22,8 @@ const userSchema = new Schema<IUser, UserModel, IUserMethods>(
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     avatar: { type: String },
+    avatarPublicId: { type: String },
+    refreshToken: { type: String },
   },
   { timestamps: true }
 );
