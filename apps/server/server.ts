@@ -6,6 +6,8 @@ import { env } from "@repo/config";
 import { redis } from "@repo/config";
 import { closeSocketServer, initSocketServer } from "./config/socket";
 import { printStartupLog } from "./utils/startupLogger";
+import { emailWorker } from "./workers/emailWorker";
+import { imageWorker } from "./workers/imageWorker";
 dotenv.config();
 
 const SHUTDOWN_TIMEOUT_MS = 30_000;
@@ -27,6 +29,10 @@ async function gracefulShutdown(
       // Disconnect Redis
       await redis.quit();
       console.log("Redis disconnected.");
+      // Close BullMQ workers
+      await emailWorker.close();
+      await imageWorker.close();
+      console.log("Workers closed.");
       // Close Socket.IO server
       await closeSocketServer();
       console.log("Socket server closed.");
