@@ -38,5 +38,10 @@ router.put(
   upload.single("avatar"),
   asyncHandler(authController.updateProfile),
 );
+router.patch(
+  "/update-status",
+  authMiddleWare,
+  asyncHandler(authController.updateStatus),
+);
 
 export default router;

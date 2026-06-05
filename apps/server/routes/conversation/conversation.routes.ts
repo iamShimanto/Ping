@@ -1,12 +1,24 @@
 import { Router } from "express";
-import * as conversation from "../../controllers/conversation/conversation.controller";
-import {asyncHandler} from "@repo/helpers";
+import * as conv from "../../controllers/conversation/conversation.controller";
+import { asyncHandler } from "@repo/helpers";
+import { authMiddleWare } from "../../middleware/auth.middleware";
+
 const router = Router();
 
-router.post("/add-new-friend", asyncHandler(conversation.addNewFriend));
-router.get("/list", asyncHandler(conversation.getConversations));
-router.post("/send-message", asyncHandler(conversation.sendMessage));
-router.get("/messages/:conversationId", asyncHandler(conversation.getMessages));
+// All conversation routes require authentication
+router.use(authMiddleWare);
 
+// ── Conversations ─────────────────────────────────────────────────────────────
+router.post("/add-new-friend", asyncHandler(conv.addNewFriend));
+router.post("/create-group",   asyncHandler(conv.createGroup));
+router.get("/list",            asyncHandler(conv.getConversations));
+router.get("/:conversationId", asyncHandler(conv.getConversation));
+
+// ── Messages ──────────────────────────────────────────────────────────────────
+router.post("/messages/send",                              asyncHandler(conv.sendMessage));
+router.get("/messages/:conversationId",                    asyncHandler(conv.getMessages));
+router.delete("/messages/:messageId",                      asyncHandler(conv.deleteMessage));
+router.patch("/messages/:messageId/read",                  asyncHandler(conv.markMessageRead));
+router.patch("/messages/read-all/:conversationId",         asyncHandler(conv.markAllRead));
 
 export default router;
