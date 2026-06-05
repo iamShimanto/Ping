@@ -12,11 +12,20 @@ export const ROUTES = {
     changePassword: `${base}/auth/change-password`,
     updateProfile: `${base}/auth/update-profile`,
   },
-  conversation: {
-    addNewFriend: `${base}/conversation/add-new-friend`,
-    list: `${base}/conversation/list`,
-    sendMessage: `${base}/conversation/send-message`,
-    getMessages: `${base}/conversation/messages/:conversationId`,
+  conversations: {
+    addNewFriend: `${base}/conversations/add-new-friend`,
+    createGroup: `${base}/conversations/create-group`,
+    list: `${base}/conversations/list`,
+    getOne: `${base}/conversations/:conversationId`,
+    sendMessage: `${base}/conversations/messages/send`,
+    getMessages: `${base}/conversations/messages/:conversationId`,
+    deleteMessage: `${base}/conversations/messages/:messageId`,
+    markRead: `${base}/conversations/messages/:messageId/read`,
+    markAllRead: `${base}/conversations/messages/read-all/:conversationId`,
+  },
+  users: {
+    search: `${base}/users/search`,
+    getProfile: `${base}/users/:userId`,
   },
 } as const;
 

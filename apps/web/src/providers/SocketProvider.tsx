@@ -6,6 +6,7 @@ import {
   setSocketConnected,
   setSocketId,
 } from "../store/slices/socketSlice";
+import { conversationApi, type Message } from "../api/conversation/conversationApi";
 import { toast } from "@repo/ui";
 
 interface Props {
@@ -34,7 +35,6 @@ const SocketProvider = ({ children }: Props) => {
     console.warn("[Socket] Connect error:", err.message);
 
     if (err.message === "AUTH_TOKEN_EXPIRED") {
-
       setTimeout(() => {
         if (!socket.connected) socket.connect();
       }, 3000);
@@ -42,7 +42,6 @@ const SocketProvider = ({ children }: Props) => {
     }
 
     if (err.message === "AUTH_TOKEN_MISSING" || err.message === "AUTH_TOKEN_INVALID") {
-      // Not authenticated — disconnect cleanly, route guard will redirect
       socket.disconnect();
       return;
     }
@@ -50,17 +49,51 @@ const SocketProvider = ({ children }: Props) => {
     toast.error("Real-time connection failed. Retrying…", "Socket");
   }, []);
 
+  const handleMessageReceived = useCallback(
+    (message: Message) => {
+      const conversationId = message.conversation;
+      dispatch(
+        conversationApi.util.updateQueryData("getMessages", { conversationId }, (draft) => {
+          const exists = draft.messages.some((m) => m._id === message._id);
+          if (!exists) draft.messages.push(message);
+        })
+      );
+      // Also refresh conversation list so lastMessage updates
+      dispatch(conversationApi.util.invalidateTags(["Conversations"]));
+    },
+    [dispatch],
+  );
+
+  const handleMessageDeleted = useCallback(
+    ({ messageId, conversationId }: { messageId: string; conversationId: string }) => {
+      dispatch(
+        conversationApi.util.updateQueryData("getMessages", { conversationId }, (draft) => {
+          const msg = draft.messages.find((m) => m._id === messageId);
+          if (msg) {
+            msg.isDeleted = true;
+            msg.content = "This message was deleted";
+          }
+        })
+      );
+    },
+    [dispatch],
+  );
+
   useEffect(() => {
     socket.on("connect", handleConnect);
     socket.on("disconnect", handleDisconnect);
     socket.on("connect_error", handleConnectError);
+    socket.on("message:received", handleMessageReceived);
+    socket.on("message:deleted", handleMessageDeleted);
 
     return () => {
       socket.off("connect", handleConnect);
       socket.off("disconnect", handleDisconnect);
       socket.off("connect_error", handleConnectError);
+      socket.off("message:received", handleMessageReceived);
+      socket.off("message:deleted", handleMessageDeleted);
     };
-  }, [handleConnect, handleDisconnect, handleConnectError]);
+  }, [handleConnect, handleDisconnect, handleConnectError, handleMessageReceived, handleMessageDeleted]);
 
   // Connect when authenticated, disconnect when logged out
   useEffect(() => {
