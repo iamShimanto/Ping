@@ -1,15 +1,15 @@
 # Chat App MERN
 
-A full-stack chat application built with a Turborepo monorepo, React + Vite on the frontend, and Express + MongoDB + Redis + Socket.IO on the backend.
+A full-stack chat application built with Monorepo, React + Vite on the frontend, and Express + MongoDB + Redis + Socket.IO on the backend.
 
 ## Overview
 
-This repository is organized as a pnpm workspace with shared packages for config and helpers.
+This repository is organized as a pnpm workspace with shared packages for ui, config and helpers.
 
 ### Tech Stack
 
 - Frontend: React, Vite, TypeScript, Redux Toolkit, React Router, Socket.IO client, Tailwind CSS
-- Backend: Express, TypeScript, MongoDB, Mongoose, Redis, Socket.IO, Cloudinary
+- Backend: Express, TypeScript, MongoDB, Mongoose, Redis, Socket.IO, BullMQ , Cloudinary
 - Workspace tooling: pnpm, Turborepo
 
 ### Main Features
@@ -28,14 +28,15 @@ This repository is organized as a pnpm workspace with shared packages for config
 .
 |-- apps
 |   |-- server
-|   `-- web
+|   |-- web
 |-- packages
 |   |-- config
-|   `-- helpers
+|   |-- helpers
+|   |-- ui
 |-- package.json
 |-- pnpm-workspace.yaml
 |-- turbo.json
-`-- README.md
+|-- README.md
 ```
 
 ## Prerequisites

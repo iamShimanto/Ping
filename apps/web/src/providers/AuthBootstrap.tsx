@@ -7,10 +7,7 @@ interface Props {
   children: React.ReactNode;
 }
 
-/**
- * Fires GET /api/v1/auth/me once on app mount to rehydrate auth state
- * from the httpOnly cookie. Blocks render until resolved.
- */
+
 export const AuthBootstrap: React.FC<Props> = ({ children }) => {
   const dispatch = useAppDispatch();
   const { isLoading } = useGetCurrentUserQuery(undefined, {
