@@ -8,6 +8,10 @@ export interface IUser {
   avatar?: string;
   avatarPublicId?: string;
   refreshToken?: string;
+  status: "online" | "offline" | "away" | "busy";
+  bio?: string;
+  location?: string;
+  lastSeen?: Date;
 }
 
 export interface IUserMethods {
@@ -24,13 +28,20 @@ const userSchema = new Schema<IUser, UserModel, IUserMethods>(
     avatar: { type: String },
     avatarPublicId: { type: String },
     refreshToken: { type: String },
+    status: {
+      type: String,
+      enum: ["online", "offline", "away", "busy"],
+      default: "offline",
+    },
+    bio: { type: String },
+    location: { type: String },
+    lastSeen: { type: Date },
   },
   { timestamps: true }
 );
 
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
-
   this.password = await bcrypt.hash(this.password, 10);
 });
 

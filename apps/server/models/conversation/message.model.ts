@@ -5,18 +5,35 @@ export interface IMessage {
   content: string;
   sender: Types.ObjectId;
   conversation: Types.ObjectId;
+  fileUrl?: string;
+  fileName?: string;
+  fileSize?: number;
+  filePublicId?: string;
+  isDeleted: boolean;
+  readBy: Types.ObjectId[];
 }
 
-const messageSchema = new Schema({
-  contentType: {
-    type: String,
-    enum: ["text", "image", "video", "voice", "file"],
-    required: true,
+const messageSchema = new Schema<IMessage>(
+  {
+    contentType: {
+      type: String,
+      enum: ["text", "image", "video", "voice", "file"],
+      required: true,
+    },
+    content: { type: String, required: true },
+    sender: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    conversation: { type: Schema.Types.ObjectId, ref: "Conversation", required: true },
+    fileUrl: { type: String },
+    fileName: { type: String },
+    fileSize: { type: Number },
+    filePublicId: { type: String },
+    isDeleted: { type: Boolean, default: false },
+    readBy: [{ type: Schema.Types.ObjectId, ref: "User" }],
   },
-  content: { type: String, required: true },
-  sender: { type: Types.ObjectId, ref: "User", required: true },
-  conversation: { type: Types.ObjectId, ref: "Conversation", required: true },
-}, { timestamps: true });
+  { timestamps: true }
+);
+
+messageSchema.index({ conversation: 1, createdAt: 1 });
 
 const MessageModel = model<IMessage>("Message", messageSchema);
 
