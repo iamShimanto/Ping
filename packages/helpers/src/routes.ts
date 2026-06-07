@@ -31,6 +31,9 @@ export const ROUTES = {
     search: `${base}/users/search`,
     getProfile: `${base}/users/:userId`,
   },
+  calls: {
+    list: `${base}/calls`,
+  },
   bookmarks: {
     list: `${base}/bookmarks`,
     add: `${base}/bookmarks`,

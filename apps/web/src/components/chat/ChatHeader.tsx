@@ -62,7 +62,7 @@ export default function ChatHeader({
             <RiSearchLine size={18} />
           </button>
           <button onClick={onAudioCall} className="hover:text-[#a3aed0]"><RiPhoneLine size={18} /></button>
-          <button onClick={onVideoCall} className="hidden xs:block hover:text-[#a3aed0]"><RiVideoLine size={18} /></button>
+          <button onClick={onVideoCall} className="hover:text-[#a3aed0]"><RiVideoLine size={18} /></button>
           <button onClick={onToggleInfo} className="hover:text-[#a3aed0]"><RiInformationLine size={18} /></button>
           <button className="hover:text-[#a3aed0]"><RiMoreLine size={18} /></button>
         </div>

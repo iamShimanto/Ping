@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import {
-  RiMicLine, RiPhoneLine, RiVideoLine,
-  RiCloseLine, RiZoomInLine, RiMicOffLine, RiVolumeUpLine, RiUserAddLine,
+  RiMicLine, RiPhoneLine,
+  RiCloseLine, RiZoomInLine,
   RiSendPlaneFill,
 } from "react-icons/ri";
 import Avatar from "./Avatar";
@@ -20,7 +20,8 @@ import {
   useLazySearchMessagesQuery,
 
 } from "../../api/conversation/conversationApi";
-import { useAppSelector } from "../../store/hooks";
+import { useAppSelector, useAppDispatch } from "../../store/hooks";
+import { startOutgoingCall } from "../../store/slices/callSlice";
 import { socket } from "../../socket/socket";
 import { toast } from "@repo/ui";
 import { useAddBookmarkMutation, useRemoveBookmarkMutation, useGetBookmarksQuery } from "../../api/bookmark/bookmarkApi";
@@ -31,13 +32,12 @@ interface ChatWindowProps {
 }
 
 export default function ChatWindow({ contactId, onBack }: ChatWindowProps) {
+  const dispatch = useAppDispatch();
   const currentUser = useAppSelector((s) => s.auth.user);
 
   // ── UI state ─────────────────────────────────────────────────────────────────
   const [message, setMessage] = useState("");
   const [showInfo, setShowInfo] = useState(false);
-  const [showAudioCall, setShowAudioCall] = useState(false);
-  const [showVideoCall, setShowVideoCall] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [emojiPickerFor, setEmojiPickerFor] = useState<string | null>(null);
   const [showInputEmoji, setShowInputEmoji] = useState(false);
@@ -204,6 +204,27 @@ export default function ChatWindow({ contactId, onBack }: ChatWindowProps) {
     });
   }, []);
 
+  // ── Calls ────────────────────────────────────────────────────────────────────
+  const initiateCall = useCallback((callType: "audio" | "video") => {
+    if (!conv?.friend?._id) return;
+    dispatch(startOutgoingCall({
+      conversationId: contactId,
+      peerId: conv.friend._id,
+      peerName: contactName,
+      peerAvatar: contactAvatar,
+      peerOnline: isOnline,
+      callType,
+    }));
+    socket.emit("call:initiate", {
+      conversationId: contactId,
+      to: conv.friend._id,
+      from: currentUser?.userId,
+      callerName: currentUser?.fullName ?? "",
+      callerAvatar: currentUser?.avatar ?? null,
+      callType,
+    });
+  }, [conv, contactId, contactName, contactAvatar, isOnline, currentUser, dispatch]);
+
   // ── Helpers ──────────────────────────────────────────────────────────────────
   const formatTime = (iso: string) =>
     new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -232,8 +253,8 @@ export default function ChatWindow({ contactId, onBack }: ChatWindowProps) {
           onToggleSearch={handleToggleSearch}
           onSearchChange={handleSearchChange}
           onScrollToMessage={handleScrollToMessage}
-          onAudioCall={() => { setShowAudioCall(true); setShowVideoCall(false); }}
-          onVideoCall={() => { setShowVideoCall(true); setShowAudioCall(false); }}
+          onAudioCall={() => initiateCall("audio")}
+          onVideoCall={() => initiateCall("video")}
           formatTime={formatTime}
         />
 
@@ -423,58 +444,7 @@ export default function ChatWindow({ contactId, onBack }: ChatWindowProps) {
         />
       )}
 
-      {/* Audio Call Modal */}
-      {showAudioCall && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50 p-4">
-          <div className="w-full max-w-xs bg-[#2a3042] rounded-xl overflow-hidden shadow-2xl">
-            <div className="p-6 sm:p-8 flex flex-col items-center gap-4">
-              <Avatar initials={contactName.slice(0, 2).toUpperCase()} name={contactName} size="xl" online src={contactAvatar} />
-              <div className="flex gap-6 sm:gap-8 mt-2">
-                {[{ icon: RiMicOffLine, label: "Mute" }, { icon: RiVolumeUpLine, label: "Speaker" }, { icon: RiUserAddLine, label: "Add New" }].map(({ icon: Icon, label }) => (
-                  <div key={label} className="flex flex-col items-center gap-1">
-                    <button className="w-10 h-10 bg-[#3d4554] rounded-full flex items-center justify-center text-[#a3aed0] hover:bg-[#4b5563]"><Icon size={18} /></button>
-                    <span className="text-[10px] text-[#6b7280] uppercase">{label}</span>
-                  </div>
-                ))}
-              </div>
-              <button onClick={() => setShowAudioCall(false)} className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600 mt-2">
-                <RiPhoneLine size={22} className="rotate-135" />
-              </button>
-            </div>
-            <div className="bg-[#7269ef]/20 py-3 text-center">
-              <span className="text-white font-semibold text-sm">{contactName}</span>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Video Call Modal */}
-      {showVideoCall && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50 p-4">
-          <div className="w-full max-w-sm bg-[#2a3042] rounded-xl overflow-hidden shadow-2xl">
-            <div className="relative">
-              <div className="w-full h-56 sm:h-64 bg-[#1a2035] flex items-center justify-center">
-                <Avatar initials={contactName.slice(0, 2).toUpperCase()} name={contactName} size="xl" src={contactAvatar} />
-              </div>
-              <div className="absolute inset-0 flex flex-col items-center justify-end pb-4 gap-3">
-                <div className="flex gap-3 sm:gap-4">
-                  {[RiMicOffLine, RiVolumeUpLine, RiVideoLine, RiUserAddLine].map((Icon, i) => (
-                    <button key={i} className="w-9 h-9 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70">
-                      <Icon size={16} />
-                    </button>
-                  ))}
-                </div>
-                <button onClick={() => setShowVideoCall(false)} className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600">
-                  <RiPhoneLine size={22} className="rotate-135" />
-                </button>
-              </div>
-            </div>
-            <div className="bg-green-600 py-3 text-center">
-              <span className="text-white font-semibold text-sm">{contactName}</span>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

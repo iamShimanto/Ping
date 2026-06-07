@@ -1,5 +1,6 @@
 import { Outlet } from "react-router";
 import Sidebar from "../../components/chat/Sidebar";
+import CallModal from "../../components/chat/CallModal";
 
 export default function ChatLayout() {
   return (
@@ -8,6 +9,7 @@ export default function ChatLayout() {
       <div className="flex flex-1 overflow-hidden">
         <Outlet />
       </div>
+      <CallModal />
     </div>
   );
 }

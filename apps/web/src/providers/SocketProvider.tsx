@@ -8,7 +8,9 @@ import {
 } from "../store/slices/socketSlice";
 import { setUser } from "../store/slices/authSlice";
 import { setTyping } from "../store/slices/chatSlice";
+import { setIncomingCall } from "../store/slices/callSlice";
 import { conversationApi } from "../api/conversation/conversationApi";
+import { callApi } from "../api/call/callApi";
 import { toast } from "@repo/ui";
 
 interface Props {
@@ -74,6 +76,19 @@ const SocketProvider = ({ children }: Props) => {
     [dispatch],
   );
 
+  const handleIncomingCall = useCallback(
+    (data: { conversationId: string; from: string; callerName: string; callerAvatar: string | null; callType?: "audio" | "video" }) => {
+      dispatch(setIncomingCall({
+        conversationId: data.conversationId,
+        peerId: data.from,
+        peerName: data.callerName,
+        peerAvatar: data.callerAvatar,
+        callType: data.callType ?? "audio",
+      }));
+    },
+    [dispatch],
+  );
+
   useEffect(() => {
     socket.on("connect", handleConnect);
     socket.on("disconnect", handleDisconnect);
@@ -81,6 +96,11 @@ const SocketProvider = ({ children }: Props) => {
     socket.on("message:received", handleMessageReceived);
     socket.on("typing:start", handleTypingStart);
     socket.on("typing:stop", handleTypingStop);
+    socket.on("call:incoming", handleIncomingCall);
+
+    const invalidateCallLogs = () => dispatch(callApi.util.invalidateTags(["CallLogs"]));
+    socket.on("call:ended", invalidateCallLogs);
+    socket.on("call:rejected", invalidateCallLogs);
 
     return () => {
       socket.off("connect", handleConnect);
@@ -89,8 +109,11 @@ const SocketProvider = ({ children }: Props) => {
       socket.off("message:received", handleMessageReceived);
       socket.off("typing:start", handleTypingStart);
       socket.off("typing:stop", handleTypingStop);
+      socket.off("call:incoming", handleIncomingCall);
+      socket.off("call:ended", invalidateCallLogs);
+      socket.off("call:rejected", invalidateCallLogs);
     };
-  }, [handleConnect, handleDisconnect, handleConnectError, handleMessageReceived, handleTypingStart, handleTypingStop]);
+  }, [handleConnect, handleDisconnect, handleConnectError, handleMessageReceived, handleTypingStart, handleTypingStop, handleIncomingCall]);
 
   // Connect when authenticated, disconnect when logged out
   useEffect(() => {
