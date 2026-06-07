@@ -6,7 +6,9 @@ import {
   setSocketConnected,
   setSocketId,
 } from "../store/slices/socketSlice";
-import { conversationApi, type Message } from "../api/conversation/conversationApi";
+import { setUser } from "../store/slices/authSlice";
+import { setTyping } from "../store/slices/chatSlice";
+import { conversationApi } from "../api/conversation/conversationApi";
 import { toast } from "@repo/ui";
 
 interface Props {
@@ -16,11 +18,7 @@ interface Props {
 const SocketProvider = ({ children }: Props) => {
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
-
-  const handleConnect = useCallback(() => {
-    dispatch(setSocketConnected(true));
-    dispatch(setSocketId(socket.id ?? null));
-  }, [dispatch]);
+  const currentUser = useAppSelector((s) => s.auth.user);
 
   const handleDisconnect = useCallback(
     (reason: string) => {
@@ -49,32 +47,29 @@ const SocketProvider = ({ children }: Props) => {
     toast.error("Real-time connection failed. Retrying…", "Socket");
   }, []);
 
-  const handleMessageReceived = useCallback(
-    (message: Message) => {
-      const conversationId = message.conversation;
-      dispatch(
-        conversationApi.util.updateQueryData("getMessages", { conversationId }, (draft) => {
-          const exists = draft.messages.some((m) => m._id === message._id);
-          if (!exists) draft.messages.push(message);
-        })
-      );
-      // Also refresh conversation list so lastMessage updates
-      dispatch(conversationApi.util.invalidateTags(["Conversations"]));
+  const handleMessageReceived = useCallback(() => {
+    dispatch(conversationApi.util.invalidateTags(["Conversations"]));
+  }, [dispatch]);
+
+  // When socket connects, server sets us online in DB — sync Redux state too
+  const handleConnect = useCallback(() => {
+    dispatch(setSocketConnected(true));
+    dispatch(setSocketId(socket.id ?? null));
+    if (currentUser) {
+      dispatch(setUser({ ...currentUser, status: "online" }));
+    }
+  }, [dispatch, currentUser]);
+
+  const handleTypingStart = useCallback(
+    ({ userId, conversationId }: { userId: string; conversationId: string }) => {
+      dispatch(setTyping({ conversationId, userId, isTyping: true }));
     },
     [dispatch],
   );
 
-  const handleMessageDeleted = useCallback(
-    ({ messageId, conversationId }: { messageId: string; conversationId: string }) => {
-      dispatch(
-        conversationApi.util.updateQueryData("getMessages", { conversationId }, (draft) => {
-          const msg = draft.messages.find((m) => m._id === messageId);
-          if (msg) {
-            msg.isDeleted = true;
-            msg.content = "This message was deleted";
-          }
-        })
-      );
+  const handleTypingStop = useCallback(
+    ({ userId, conversationId }: { userId: string; conversationId: string }) => {
+      dispatch(setTyping({ conversationId, userId, isTyping: false }));
     },
     [dispatch],
   );
@@ -84,16 +79,18 @@ const SocketProvider = ({ children }: Props) => {
     socket.on("disconnect", handleDisconnect);
     socket.on("connect_error", handleConnectError);
     socket.on("message:received", handleMessageReceived);
-    socket.on("message:deleted", handleMessageDeleted);
+    socket.on("typing:start", handleTypingStart);
+    socket.on("typing:stop", handleTypingStop);
 
     return () => {
       socket.off("connect", handleConnect);
       socket.off("disconnect", handleDisconnect);
       socket.off("connect_error", handleConnectError);
       socket.off("message:received", handleMessageReceived);
-      socket.off("message:deleted", handleMessageDeleted);
+      socket.off("typing:start", handleTypingStart);
+      socket.off("typing:stop", handleTypingStop);
     };
-  }, [handleConnect, handleDisconnect, handleConnectError, handleMessageReceived, handleMessageDeleted]);
+  }, [handleConnect, handleDisconnect, handleConnectError, handleMessageReceived, handleTypingStart, handleTypingStop]);
 
   // Connect when authenticated, disconnect when logged out
   useEffect(() => {

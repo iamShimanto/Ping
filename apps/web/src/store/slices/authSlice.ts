@@ -1,12 +1,7 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import { authApi } from "../../api/auth/authAPi";
+import { authApi, type AuthUser } from "../../api/auth/authAPi";
 
-export interface AuthUser {
-  userId: string;
-  fullName: string;
-  email: string;
-  avatar: string | null;
-}
+export type { AuthUser };
 
 interface AuthState {
   user: AuthUser | null;
@@ -63,6 +58,11 @@ const authSlice = createSlice({
       .addMatcher(authApi.endpoints.updateProfile.matchFulfilled, (state, { payload }) => {
         if (state.user) {
           state.user = { ...state.user, ...payload.data };
+        }
+      })
+      .addMatcher(authApi.endpoints.updateStatus.matchFulfilled, (state, { payload }) => {
+        if (state.user) {
+          state.user = { ...state.user, status: payload.status };
         }
       });
   },

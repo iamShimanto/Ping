@@ -20,6 +20,7 @@ export interface Conversation {
   participants?: ConversationFriend[];
   lastMessage?: string | null;
   lastMessageAt?: string | null;
+  unreadCount?: number;
 }
 
 export interface MessageSender {
@@ -29,15 +30,23 @@ export interface MessageSender {
   avatar: string | null;
 }
 
+export interface MessageReaction {
+  userId: string;
+  emoji: string;
+}
+
 export interface Message {
   _id: string;
   conversation: string;
   sender: MessageSender;
   content: string;
-  contentType: "text" | "image" | "file";
+  contentType: "text" | "image" | "file" | "voice";
   fileName?: string;
   fileSize?: number;
+  fileUrl?: string;
   readBy: string[];
+  likes: string[];
+  reactions: MessageReaction[];
   isDeleted: boolean;
   createdAt: string;
 }
@@ -73,11 +82,13 @@ export const conversationApi = createApi({
       invalidatesTags: ["Conversations"],
     }),
 
-    sendMessage: builder.mutation<Message, { conversationId: string; content: string; contentType?: string }>({
+    sendMessage: builder.mutation<Message, FormData | { conversationId: string; content: string; contentType?: string }>({
       query: (payload) => ({
         url: ROUTES.conversations.sendMessage,
         method: "POST",
         body: payload,
+        // let browser set Content-Type with boundary when FormData
+        formData: payload instanceof FormData,
       }),
       transformResponse: (res: { data: Message }) => res.data,
     }),
@@ -89,6 +100,14 @@ export const conversationApi = createApi({
       }),
       transformResponse: (res: { data: { messages: Message[]; pagination: { page: number; limit: number; total: number; pages: number } } }) => res.data,
       providesTags: (_result, _err, { conversationId }) => [{ type: "Messages", id: conversationId }],
+    }),
+
+    searchMessages: builder.query<Message[], { conversationId: string; q: string }>({
+      query: ({ conversationId, q }) => ({
+        url: `${buildRoute(ROUTES.conversations.searchMessages, { conversationId })}?q=${encodeURIComponent(q)}`,
+        method: "GET",
+      }),
+      transformResponse: (res: { data: Message[] }) => res.data,
     }),
 
     deleteMessage: builder.mutation<{ messageId: string }, string>({
@@ -105,6 +124,23 @@ export const conversationApi = createApi({
         method: "PATCH",
       }),
     }),
+
+    likeMessage: builder.mutation<{ messageId: string; liked: boolean; likes: string[] }, string>({
+      query: (messageId) => ({
+        url: buildRoute(ROUTES.conversations.likeMessage, { messageId }),
+        method: "PATCH",
+      }),
+      transformResponse: (res: { data: { messageId: string; liked: boolean; likes: string[] } }) => res.data,
+    }),
+
+    reactToMessage: builder.mutation<{ messageId: string; reactions: MessageReaction[] }, { messageId: string; emoji: string }>({
+      query: ({ messageId, emoji }) => ({
+        url: buildRoute(ROUTES.conversations.reactToMessage, { messageId }),
+        method: "PATCH",
+        body: { emoji },
+      }),
+      transformResponse: (res: { data: { messageId: string; reactions: MessageReaction[] } }) => res.data,
+    }),
   }),
 });
 
@@ -114,6 +150,10 @@ export const {
   useCreateGroupMutation,
   useSendMessageMutation,
   useGetMessagesQuery,
+  useLazyGetMessagesQuery,
+  useLazySearchMessagesQuery,
   useDeleteMessageMutation,
   useMarkAllReadMutation,
+  useLikeMessageMutation,
+  useReactToMessageMutation,
 } = conversationApi;

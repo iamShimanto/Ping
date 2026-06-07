@@ -11,6 +11,7 @@ export const ROUTES = {
     getCurrentUser: `${base}/auth/me`,
     changePassword: `${base}/auth/change-password`,
     updateProfile: `${base}/auth/update-profile`,
+    updateStatus: `${base}/auth/update-status`,
   },
   conversations: {
     addNewFriend: `${base}/conversations/add-new-friend`,
@@ -22,10 +23,19 @@ export const ROUTES = {
     deleteMessage: `${base}/conversations/messages/:messageId`,
     markRead: `${base}/conversations/messages/:messageId/read`,
     markAllRead: `${base}/conversations/messages/read-all/:conversationId`,
+    searchMessages: `${base}/conversations/messages/:conversationId/search`,
+    likeMessage: `${base}/conversations/messages/:messageId/like`,
+    reactToMessage: `${base}/conversations/messages/:messageId/react`,
   },
   users: {
     search: `${base}/users/search`,
     getProfile: `${base}/users/:userId`,
+  },
+  bookmarks: {
+    list: `${base}/bookmarks`,
+    add: `${base}/bookmarks`,
+    remove: `${base}/bookmarks/:messageId`,
+    check: `${base}/bookmarks/check/:messageId`,
   },
 } as const;
 
