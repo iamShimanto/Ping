@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { setCallConnected, endCall } from "../store/slices/callSlice";
+import { setCallConnected, endCall, setScreenSharing } from "../store/slices/callSlice";
 import { socket } from "../socket/socket";
 
 const ICE_SERVERS: RTCConfiguration = {
@@ -17,6 +17,7 @@ export function useWebRTC() {
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const screenStreamRef = useRef<MediaStream | null>(null);
   const pendingOfferRef = useRef<RTCSessionDescriptionInit | null>(null);
 
   // Refs for video elements — set by CallModal
@@ -27,6 +28,8 @@ export function useWebRTC() {
   const cleanup = useCallback(() => {
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     localStreamRef.current = null;
+    screenStreamRef.current?.getTracks().forEach((t) => t.stop());
+    screenStreamRef.current = null;
     pcRef.current?.close();
     pcRef.current = null;
     pendingOfferRef.current = null;
@@ -135,6 +138,44 @@ export function useWebRTC() {
     localStreamRef.current?.getVideoTracks().forEach((t) => { t.enabled = !off; });
   }, []);
 
+  // ── Screen share ───────────────────────────────────────────────────────────
+  const stopScreenShare = useCallback(async () => {
+    if (!pcRef.current || !localStreamRef.current) return;
+    screenStreamRef.current?.getTracks().forEach((t) => t.stop());
+    screenStreamRef.current = null;
+
+    const cameraTrack = localStreamRef.current.getVideoTracks()[0];
+    const sender = pcRef.current.getSenders().find((s) => s.track?.kind === "video");
+    if (sender && cameraTrack) await sender.replaceTrack(cameraTrack);
+
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = localStreamRef.current;
+    }
+    dispatch(setScreenSharing(false));
+  }, [dispatch]);
+
+  const startScreenShare = useCallback(async () => {
+    if (!pcRef.current) return;
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      screenStreamRef.current = screenStream;
+      const screenTrack = screenStream.getVideoTracks()[0];
+
+      const sender = pcRef.current.getSenders().find((s) => s.track?.kind === "video");
+      if (sender) await sender.replaceTrack(screenTrack);
+
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = screenStream;
+      }
+      dispatch(setScreenSharing(true));
+
+      // Revert when user stops via browser's native stop button
+      screenTrack.onended = () => { stopScreenShare(); };
+    } catch {
+      // User cancelled or permission denied
+    }
+  }, [dispatch, stopScreenShare]);
+
   // ── Socket signal handlers ────────────────────────────────────────────────
   useEffect(() => {
     const onOffer = ({ offer }: { offer: RTCSessionDescriptionInit }) => {
@@ -180,5 +221,5 @@ export function useWebRTC() {
 
   useEffect(() => () => { cleanup(); }, [cleanup]);
 
-  return { remoteAudioRef, localVideoRef, remoteVideoRef, hangUp, rejectCall, acceptCall };
+  return { remoteAudioRef, localVideoRef, remoteVideoRef, hangUp, rejectCall, acceptCall, startScreenShare, stopScreenShare };
 }

@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import {
-  RiMicLine, RiPhoneLine,
+  RiMicLine,
   RiCloseLine, RiZoomInLine,
   RiSendPlaneFill,
 } from "react-icons/ri";

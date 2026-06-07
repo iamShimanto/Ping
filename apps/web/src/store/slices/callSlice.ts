@@ -13,6 +13,7 @@ interface CallState {
   peerOnline: boolean;
   isMuted: boolean;
   isCameraOff: boolean;
+  isScreenSharing: boolean;
 }
 
 const initialState: CallState = {
@@ -25,6 +26,7 @@ const initialState: CallState = {
   peerOnline: false,
   isMuted: false,
   isCameraOff: false,
+  isScreenSharing: false,
 };
 
 const callSlice = createSlice({
@@ -44,6 +46,7 @@ const callSlice = createSlice({
       state.peerOnline = action.payload.peerOnline;
       state.isMuted = false;
       state.isCameraOff = false;
+      state.isScreenSharing = false;
     },
     setIncomingCall(state, action: PayloadAction<{
       conversationId: string; peerId: string; peerName: string;
@@ -57,6 +60,7 @@ const callSlice = createSlice({
       state.peerAvatar = action.payload.peerAvatar;
       state.isMuted = false;
       state.isCameraOff = false;
+      state.isScreenSharing = false;
     },
     setCallConnected(state) {
       state.status = "connected";
@@ -70,11 +74,14 @@ const callSlice = createSlice({
     toggleCamera(state) {
       state.isCameraOff = !state.isCameraOff;
     },
+    setScreenSharing(state, action: PayloadAction<boolean>) {
+      state.isScreenSharing = action.payload;
+    },
   },
 });
 
 export const {
   startOutgoingCall, setIncomingCall, setCallConnected,
-  endCall, toggleMute, toggleCamera,
+  endCall, toggleMute, toggleCamera, setScreenSharing,
 } = callSlice.actions;
 export default callSlice.reducer;
