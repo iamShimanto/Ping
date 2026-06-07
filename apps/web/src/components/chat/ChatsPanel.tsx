@@ -20,8 +20,9 @@ function AddFriendModal({ onClose }: { onClose: () => void }) {
       await addNewFriend({ email: email.trim() }).unwrap();
       toast.success("Friend added!", "Chats");
       onClose();
-    } catch (err: any) {
-      toast.error(err?.data?.message ?? "Failed to add friend", "Chats");
+    } catch (err) {
+      const msg = (err as { data?: { message?: string } })?.data?.message;
+      toast.error(msg ?? "Failed to add friend", "Chats");
     }
   };
 
@@ -134,6 +135,11 @@ export default function ChatsPanel({ selectedId, onSelect }: ChatsPanelProps) {
                         <span className="text-xs text-[#6b7280] truncate block">{conv.lastMessage}</span>
                       )}
                     </div>
+                    {!!conv.unreadCount && selectedId !== convId && (
+                      <span className="shrink-0 min-w-4.5 h-4.5 bg-[#7269ef] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                        {conv.unreadCount > 99 ? "99+" : conv.unreadCount}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -154,7 +160,7 @@ export default function ChatsPanel({ selectedId, onSelect }: ChatsPanelProps) {
                     className={`w-full flex items-center gap-3 px-2 py-2.5 sm:py-2 rounded-lg transition-colors text-left
                       ${selectedId === convId ? "bg-[#7269ef]" : "hover:bg-[#323a4d] active:bg-[#323a4d]"}`}
                   >
-                    <div className="w-8 h-8 rounded-full border-2 border-[#3d4554] flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full border-2 border-[#3d4554] flex items-center justify-center shrink-0">
                       <span className={`text-xs font-bold ${selectedId === convId ? "text-white" : "text-[#6b7280]"}`}>#</span>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -165,6 +171,11 @@ export default function ChatsPanel({ selectedId, onSelect }: ChatsPanelProps) {
                         <span className="text-xs text-[#6b7280] truncate block">{conv.lastMessage}</span>
                       )}
                     </div>
+                    {!!conv.unreadCount && selectedId !== convId && (
+                      <span className="shrink-0 min-w-4.5 h-4.5 bg-[#7269ef] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                        {conv.unreadCount > 99 ? "99+" : conv.unreadCount}
+                      </span>
+                    )}
                   </button>
                 );
               })}

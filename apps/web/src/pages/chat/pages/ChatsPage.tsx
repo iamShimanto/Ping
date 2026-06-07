@@ -1,10 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router";
 import ChatsPanel from "../../../components/chat/ChatsPanel";
 import ChatWindow from "../../../components/chat/ChatWindow";
 import WelcomeScreen from "../../../components/chat/WelcomeScreen";
 
 export default function ChatsPage() {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedId, setSelectedId] = useState<string | null>(
+    searchParams.get("conv")
+  );
+
+  useEffect(() => {
+    const conv = searchParams.get("conv");
+    if (conv) {
+      setSelectedId(conv);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const handleSelect = (id: string) => setSelectedId(id);
   const handleBack = () => setSelectedId(null);

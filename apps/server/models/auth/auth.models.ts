@@ -10,6 +10,7 @@ export interface IUser {
   refreshToken?: string;
   status: "online" | "offline" | "away" | "busy";
   bio?: string;
+  designation?: string;
   location?: string;
   lastSeen?: Date;
 }
@@ -34,6 +35,7 @@ const userSchema = new Schema<IUser, UserModel, IUserMethods>(
       default: "offline",
     },
     bio: { type: String },
+    designation: { type: String },
     location: { type: String },
     lastSeen: { type: Date },
   },

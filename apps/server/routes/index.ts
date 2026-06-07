@@ -3,6 +3,7 @@ import { rateLimit } from "../utils/rateLimit";
 import authRoutes from "./auth/auth.routes";
 import conversationRoutes from "./conversation/conversation.routes";
 import usersRoutes from "./users/users.routes";
+import bookmarkRoutes from "./bookmark/bookmark.routes";
 const router = Router();
 
 
@@ -17,6 +18,7 @@ router.get("/", (req: Request, res: Response) => {
 router.use("/api/v1/auth", authRoutes);
 router.use("/api/v1/conversations", conversationRoutes);
 router.use("/api/v1/users", usersRoutes);
+router.use("/api/v1/bookmarks", bookmarkRoutes);
 
 router.use((req: Request, res: Response) => {
   res.status(404).send({ message: "Api enpoint not found" });

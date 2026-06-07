@@ -20,6 +20,7 @@ export interface Conversation {
   participants?: ConversationFriend[];
   lastMessage?: string | null;
   lastMessageAt?: string | null;
+  unreadCount?: number;
 }
 
 export interface MessageSender {
@@ -37,7 +38,9 @@ export interface Message {
   contentType: "text" | "image" | "file";
   fileName?: string;
   fileSize?: number;
+  fileUrl?: string;
   readBy: string[];
+  likes: string[];
   isDeleted: boolean;
   createdAt: string;
 }
@@ -73,11 +76,13 @@ export const conversationApi = createApi({
       invalidatesTags: ["Conversations"],
     }),
 
-    sendMessage: builder.mutation<Message, { conversationId: string; content: string; contentType?: string }>({
+    sendMessage: builder.mutation<Message, FormData | { conversationId: string; content: string; contentType?: string }>({
       query: (payload) => ({
         url: ROUTES.conversations.sendMessage,
         method: "POST",
         body: payload,
+        // let browser set Content-Type with boundary when FormData
+        formData: payload instanceof FormData,
       }),
       transformResponse: (res: { data: Message }) => res.data,
     }),
@@ -105,6 +110,14 @@ export const conversationApi = createApi({
         method: "PATCH",
       }),
     }),
+
+    likeMessage: builder.mutation<{ messageId: string; liked: boolean; likes: string[] }, string>({
+      query: (messageId) => ({
+        url: buildRoute(ROUTES.conversations.likeMessage, { messageId }),
+        method: "PATCH",
+      }),
+      transformResponse: (res: { data: { messageId: string; liked: boolean; likes: string[] } }) => res.data,
+    }),
   }),
 });
 
@@ -114,6 +127,8 @@ export const {
   useCreateGroupMutation,
   useSendMessageMutation,
   useGetMessagesQuery,
+  useLazyGetMessagesQuery,
   useDeleteMessageMutation,
   useMarkAllReadMutation,
+  useLikeMessageMutation,
 } = conversationApi;

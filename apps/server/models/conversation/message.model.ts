@@ -11,6 +11,7 @@ export interface IMessage {
   filePublicId?: string;
   isDeleted: boolean;
   readBy: Types.ObjectId[];
+  likes: Types.ObjectId[];
 }
 
 const messageSchema = new Schema<IMessage>(
@@ -29,6 +30,7 @@ const messageSchema = new Schema<IMessage>(
     filePublicId: { type: String },
     isDeleted: { type: Boolean, default: false },
     readBy: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    likes: [{ type: Schema.Types.ObjectId, ref: "User" }],
   },
   { timestamps: true }
 );

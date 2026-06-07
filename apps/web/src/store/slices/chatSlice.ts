@@ -4,11 +4,14 @@ import type { Message } from "../../api/conversation/conversationApi";
 interface ChatState {
   activeConversationId: string | null;
   messagesByConversation: Record<string, Message[]>;
+  // conversationId -> Set of userIds currently typing
+  typingByConversation: Record<string, string[]>;
 }
 
 const initialState: ChatState = {
   activeConversationId: null,
   messagesByConversation: {},
+  typingByConversation: {},
 };
 
 const chatSlice = createSlice({
@@ -41,8 +44,20 @@ const chatSlice = createSlice({
         }
       }
     },
+    setTyping(state, action: PayloadAction<{ conversationId: string; userId: string; isTyping: boolean }>) {
+      const { conversationId, userId, isTyping } = action.payload;
+      if (!state.typingByConversation[conversationId]) {
+        state.typingByConversation[conversationId] = [];
+      }
+      const list = state.typingByConversation[conversationId];
+      if (isTyping && !list.includes(userId)) {
+        list.push(userId);
+      } else if (!isTyping) {
+        state.typingByConversation[conversationId] = list.filter((id) => id !== userId);
+      }
+    },
   },
 });
 
-export const { setActiveConversation, setMessages, appendMessage, markMessageDeleted } = chatSlice.actions;
+export const { setActiveConversation, setMessages, appendMessage, markMessageDeleted, setTyping } = chatSlice.actions;
 export default chatSlice.reducer;

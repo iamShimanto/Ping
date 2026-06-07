@@ -4,6 +4,7 @@ import ConversationModel from "../../models/conversation/conversation.models";
 import MessageModel, { IMessage } from "../../models/conversation/message.model";
 import { successResponse, ApiError } from "@repo/helpers";
 import { getIo } from "../../config/socket";
+import { uploadToCloudinary } from "../../services/CloudinaryService";
 
 
 export const addNewFriend: RequestHandler = async (req, res) => {
@@ -83,8 +84,16 @@ export const getConversations: RequestHandler = async (req, res) => {
     .populate("creator", "fullName email avatar")
     .sort({ lastMessageAt: -1, updatedAt: -1 });
 
+  const convIds = conversations.map((c) => c._id);
+  const unreadCounts = await MessageModel.aggregate([
+    { $match: { conversation: { $in: convIds }, isDeleted: false, readBy: { $ne: new (require("mongoose").Types.ObjectId)(userId) } } },
+    { $group: { _id: "$conversation", count: { $sum: 1 } } },
+  ]);
+  const unreadMap = new Map(unreadCounts.map((r: any) => [String(r._id), r.count]));
+
   const formatted = conversations.map((conv) => {
     const participants = conv.participants as any[];
+    const unreadCount = unreadMap.get(String(conv._id)) ?? 0;
 
     if (conv.isGroup) {
       return {
@@ -95,6 +104,7 @@ export const getConversations: RequestHandler = async (req, res) => {
         participants,
         lastMessage: conv.lastMessage ?? null,
         lastMessageAt: conv.lastMessageAt ?? null,
+        unreadCount,
       };
     }
 
@@ -105,6 +115,7 @@ export const getConversations: RequestHandler = async (req, res) => {
       friend: friend ?? null,
       lastMessage: conv.lastMessage ?? null,
       lastMessageAt: conv.lastMessageAt ?? null,
+      unreadCount,
     };
   });
 
@@ -128,22 +139,13 @@ export const getConversation: RequestHandler = async (req, res) => {
 };
 
 export const sendMessage: RequestHandler = async (req, res) => {
-  const {
-    conversationId,
-    contentType = "text",
-    content,
-    fileName,
-    fileSize,
-  } = req.body as {
-    conversationId: string;
-    contentType?: IMessage["contentType"];
-    content: string;
-    fileName?: string;
-    fileSize?: number;
-  };
+  const conversationId = req.body.conversationId as string;
+  const rawContentType = req.body.contentType as string | undefined;
+  const bodyContent = req.body.content as string | undefined;
+  const fileName = req.body.fileName as string | undefined;
+  const fileSize = req.body.fileSize as number | undefined;
 
   if (!conversationId) throw new ApiError(400, "conversationId is required");
-  if (!content?.trim()) throw new ApiError(400, "content is required");
 
   const conversation = await ConversationModel.findOne({
     _id: conversationId,
@@ -151,17 +153,43 @@ export const sendMessage: RequestHandler = async (req, res) => {
   });
   if (!conversation) throw new ApiError(404, "Conversation not found");
 
+  let contentType: IMessage["contentType"] = "text";
+  let content = bodyContent?.trim() ?? "";
+  let fileUrl: string | undefined;
+  let filePublicId: string | undefined;
+  let resolvedFileName: string | undefined = fileName;
+  let resolvedFileSize: number | undefined = fileSize;
+
+  if (req.file) {
+    // Image or file upload
+    const isImage = req.file.mimetype.startsWith("image/");
+    contentType = isImage ? "image" : "file";
+    resolvedFileName = req.file.originalname;
+    resolvedFileSize = req.file.size;
+
+    const uploaded = await uploadToCloudinary(req.file, "chat/messages");
+    fileUrl = uploaded.secure_url;
+    filePublicId = uploaded.public_id;
+    content = isImage ? uploaded.secure_url : req.file.originalname;
+  } else {
+    if (!content) throw new ApiError(400, "content is required");
+    contentType = (rawContentType as IMessage["contentType"]) ?? "text";
+  }
+
   const message = await MessageModel.create({
     contentType,
-    content: content.trim(),
+    content,
     sender: req.user!.userId,
     conversation: conversationId,
-    fileName,
-    fileSize,
+    fileUrl,
+    fileName: resolvedFileName,
+    fileSize: resolvedFileSize,
+    filePublicId,
   });
 
+  const lastMessagePreview = contentType === "image" ? "📷 Photo" : contentType === "file" ? `📄 ${resolvedFileName}` : content;
   await ConversationModel.findByIdAndUpdate(conversationId, {
-    lastMessage: content.trim(),
+    lastMessage: lastMessagePreview,
     lastMessageAt: new Date(),
   });
 
@@ -170,7 +198,7 @@ export const sendMessage: RequestHandler = async (req, res) => {
   try {
     getIo().to(conversationId).emit("message:received", populated);
   } catch {
-    // 
+    //
   }
 
   successResponse(res, "Message sent successfully", 201, populated);
@@ -281,6 +309,37 @@ export const searchUsers: RequestHandler = async (req, res) => {
     .limit(20);
 
   successResponse(res, "Users found", 200, users);
+};
+
+export const likeMessage: RequestHandler = async (req, res) => {
+  const { messageId } = req.params;
+  const userId = req.user!.userId;
+
+  const message = await MessageModel.findById(messageId);
+  if (!message) throw new ApiError(404, "Message not found");
+
+  const alreadyLiked = message.likes.some((id) => id.toString() === String(userId));
+  const update = alreadyLiked
+    ? { $pull: { likes: userId } }
+    : { $addToSet: { likes: userId } };
+
+  const updated = await MessageModel.findByIdAndUpdate(messageId, update, { new: true }).populate("sender", "fullName email avatar");
+
+  try {
+    getIo().to(updated!.conversation.toString()).emit("message:liked", {
+      messageId,
+      conversationId: updated!.conversation,
+      likes: updated!.likes.map(String),
+    });
+  } catch {
+    //
+  }
+
+  successResponse(res, alreadyLiked ? "Like removed" : "Message liked", 200, {
+    messageId,
+    liked: !alreadyLiked,
+    likes: updated!.likes.map(String),
+  });
 };
 
 export const getUserProfile: RequestHandler = async (req, res) => {
