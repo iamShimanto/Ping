@@ -12,6 +12,7 @@ export interface IMessage {
   isDeleted: boolean;
   readBy: Types.ObjectId[];
   likes: Types.ObjectId[];
+  reactions: { user: Types.ObjectId; emoji: string }[];
 }
 
 const messageSchema = new Schema<IMessage>(
@@ -23,7 +24,11 @@ const messageSchema = new Schema<IMessage>(
     },
     content: { type: String, required: true },
     sender: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    conversation: { type: Schema.Types.ObjectId, ref: "Conversation", required: true },
+    conversation: {
+      type: Schema.Types.ObjectId,
+      ref: "Conversation",
+      required: true,
+    },
     fileUrl: { type: String },
     fileName: { type: String },
     fileSize: { type: Number },
@@ -31,8 +36,14 @@ const messageSchema = new Schema<IMessage>(
     isDeleted: { type: Boolean, default: false },
     readBy: [{ type: Schema.Types.ObjectId, ref: "User" }],
     likes: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    reactions: [
+      {
+        user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+        emoji: { type: String, required: true },
+      },
+    ],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 messageSchema.index({ conversation: 1, createdAt: 1 });

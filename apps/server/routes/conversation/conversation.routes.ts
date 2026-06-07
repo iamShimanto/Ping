@@ -17,11 +17,13 @@ router.get("/list", asyncHandler(conv.getConversations));
 router.get("/:conversationId", asyncHandler(conv.getConversation));
 
 // ── Messages 
-router.post("/messages/send", upload.single("image"), asyncHandler(conv.sendMessage));
+router.post("/messages/send", upload.single("file"), asyncHandler(conv.sendMessage));
 router.get("/messages/:conversationId", asyncHandler(conv.getMessages));
+router.get("/messages/:conversationId/search", asyncHandler(conv.searchMessages));
 router.delete("/messages/:messageId", asyncHandler(conv.deleteMessage));
 router.patch("/messages/:messageId/read", asyncHandler(conv.markMessageRead));
 router.patch("/messages/:messageId/like", asyncHandler(conv.likeMessage));
+router.patch("/messages/:messageId/react", asyncHandler(conv.reactToMessage));
 router.patch(
   "/messages/read-all/:conversationId",
   asyncHandler(conv.markAllRead),

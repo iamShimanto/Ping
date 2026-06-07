@@ -23,7 +23,9 @@ export const ROUTES = {
     deleteMessage: `${base}/conversations/messages/:messageId`,
     markRead: `${base}/conversations/messages/:messageId/read`,
     markAllRead: `${base}/conversations/messages/read-all/:conversationId`,
+    searchMessages: `${base}/conversations/messages/:conversationId/search`,
     likeMessage: `${base}/conversations/messages/:messageId/like`,
+    reactToMessage: `${base}/conversations/messages/:messageId/react`,
   },
   users: {
     search: `${base}/users/search`,

@@ -161,16 +161,17 @@ export const sendMessage: RequestHandler = async (req, res) => {
   let resolvedFileSize: number | undefined = fileSize;
 
   if (req.file) {
-    // Image or file upload
     const isImage = req.file.mimetype.startsWith("image/");
-    contentType = isImage ? "image" : "file";
+    const isAudio = req.file.mimetype.startsWith("audio/");
+    contentType = isImage ? "image" : isAudio ? "voice" : "file";
     resolvedFileName = req.file.originalname;
     resolvedFileSize = req.file.size;
 
     const uploaded = await uploadToCloudinary(req.file, "chat/messages");
     fileUrl = uploaded.secure_url;
     filePublicId = uploaded.public_id;
-    content = isImage ? uploaded.secure_url : req.file.originalname;
+    // For voice/file: store URL as content so it's always accessible
+    content = isImage ? uploaded.secure_url : fileUrl;
   } else {
     if (!content) throw new ApiError(400, "content is required");
     contentType = (rawContentType as IMessage["contentType"]) ?? "text";
@@ -187,7 +188,7 @@ export const sendMessage: RequestHandler = async (req, res) => {
     filePublicId,
   });
 
-  const lastMessagePreview = contentType === "image" ? "📷 Photo" : contentType === "file" ? `📄 ${resolvedFileName}` : content;
+  const lastMessagePreview = contentType === "image" ? "📷 Photo" : contentType === "voice" ? "🎤 Voice message" : contentType === "file" ? `📄 ${resolvedFileName}` : content;
   await ConversationModel.findByIdAndUpdate(conversationId, {
     lastMessage: lastMessagePreview,
     lastMessageAt: new Date(),
@@ -292,6 +293,66 @@ export const markAllRead: RequestHandler = async (req, res) => {
   );
 
   successResponse(res, "All messages marked as read", 200, {});
+};
+
+export const searchMessages: RequestHandler = async (req, res) => {
+  const { conversationId } = req.params;
+  const q = String(req.query.q ?? "").trim();
+  const userId = req.user!.userId;
+
+  if (!q) throw new ApiError(400, "Search query is required");
+
+  const conversation = await ConversationModel.findOne({ _id: conversationId, participants: userId });
+  if (!conversation) throw new ApiError(404, "Conversation not found");
+
+  const messages = await MessageModel.find({
+    conversation: conversationId,
+    isDeleted: false,
+    contentType: "text",
+    content: { $regex: q, $options: "i" },
+  })
+    .populate("sender", "fullName avatar")
+    .sort({ createdAt: -1 })
+    .limit(30);
+
+  successResponse(res, "Messages found", 200, messages);
+};
+
+export const reactToMessage: RequestHandler = async (req, res) => {
+  const { messageId } = req.params;
+  const { emoji } = req.body as { emoji: string };
+  const userId = req.user!.userId;
+
+  if (!emoji) throw new ApiError(400, "emoji is required");
+
+  const message = await MessageModel.findById(messageId);
+  if (!message) throw new ApiError(404, "Message not found");
+
+  const existingIdx = message.reactions.findIndex((r) => r.user.toString() === String(userId) && r.emoji === emoji);
+
+  if (existingIdx >= 0) {
+    // toggle off — remove this reaction
+    message.reactions.splice(existingIdx, 1);
+  } else {
+    // remove any previous reaction from this user (one reaction per user), then add new
+    const prevIdx = message.reactions.findIndex((r) => r.user.toString() === String(userId));
+    if (prevIdx >= 0) message.reactions.splice(prevIdx, 1);
+    message.reactions.push({ user: userId as unknown as import("mongoose").Types.ObjectId, emoji });
+  }
+
+  await message.save();
+
+  const reactions = message.reactions.map((r) => ({ userId: r.user.toString(), emoji: r.emoji }));
+
+  try {
+    getIo().to(message.conversation.toString()).emit("message:reacted", {
+      messageId,
+      conversationId: message.conversation,
+      reactions,
+    });
+  } catch { /**/ }
+
+  successResponse(res, "Reaction updated", 200, { messageId, reactions });
 };
 
 export const searchUsers: RequestHandler = async (req, res) => {

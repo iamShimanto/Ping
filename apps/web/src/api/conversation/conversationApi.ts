@@ -30,17 +30,23 @@ export interface MessageSender {
   avatar: string | null;
 }
 
+export interface MessageReaction {
+  userId: string;
+  emoji: string;
+}
+
 export interface Message {
   _id: string;
   conversation: string;
   sender: MessageSender;
   content: string;
-  contentType: "text" | "image" | "file";
+  contentType: "text" | "image" | "file" | "voice";
   fileName?: string;
   fileSize?: number;
   fileUrl?: string;
   readBy: string[];
   likes: string[];
+  reactions: MessageReaction[];
   isDeleted: boolean;
   createdAt: string;
 }
@@ -96,6 +102,14 @@ export const conversationApi = createApi({
       providesTags: (_result, _err, { conversationId }) => [{ type: "Messages", id: conversationId }],
     }),
 
+    searchMessages: builder.query<Message[], { conversationId: string; q: string }>({
+      query: ({ conversationId, q }) => ({
+        url: `${buildRoute(ROUTES.conversations.searchMessages, { conversationId })}?q=${encodeURIComponent(q)}`,
+        method: "GET",
+      }),
+      transformResponse: (res: { data: Message[] }) => res.data,
+    }),
+
     deleteMessage: builder.mutation<{ messageId: string }, string>({
       query: (messageId) => ({
         url: buildRoute(ROUTES.conversations.deleteMessage, { messageId }),
@@ -118,6 +132,15 @@ export const conversationApi = createApi({
       }),
       transformResponse: (res: { data: { messageId: string; liked: boolean; likes: string[] } }) => res.data,
     }),
+
+    reactToMessage: builder.mutation<{ messageId: string; reactions: MessageReaction[] }, { messageId: string; emoji: string }>({
+      query: ({ messageId, emoji }) => ({
+        url: buildRoute(ROUTES.conversations.reactToMessage, { messageId }),
+        method: "PATCH",
+        body: { emoji },
+      }),
+      transformResponse: (res: { data: { messageId: string; reactions: MessageReaction[] } }) => res.data,
+    }),
   }),
 });
 
@@ -128,7 +151,9 @@ export const {
   useSendMessageMutation,
   useGetMessagesQuery,
   useLazyGetMessagesQuery,
+  useLazySearchMessagesQuery,
   useDeleteMessageMutation,
   useMarkAllReadMutation,
   useLikeMessageMutation,
+  useReactToMessageMutation,
 } = conversationApi;
