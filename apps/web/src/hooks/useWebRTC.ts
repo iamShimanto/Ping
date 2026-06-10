@@ -29,6 +29,7 @@ export function useWebRTC() {
   const localStreamRef = useRef<MediaStream | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
   const pendingOfferRef = useRef<RTCSessionDescriptionInit | null>(null);
+  const pendingCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
 
   // Refs for video elements — set by CallModal
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -43,6 +44,7 @@ export function useWebRTC() {
     pcRef.current?.close();
     pcRef.current = null;
     pendingOfferRef.current = null;
+    pendingCandidatesRef.current = [];
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
   }, []);
@@ -135,6 +137,11 @@ export function useWebRTC() {
     stream.getTracks().forEach((t) => pc.addTrack(t, stream));
     pcRef.current = pc;
     await pc.setRemoteDescription(new RTCSessionDescription(offer));
+    // Drain any ICE candidates that arrived before accept
+    for (const candidate of pendingCandidatesRef.current) {
+      await pc.addIceCandidate(new RTCIceCandidate(candidate));
+    }
+    pendingCandidatesRef.current = [];
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
     socket.emit("call:answer", {
@@ -247,7 +254,6 @@ export function useWebRTC() {
         await pcRef.current.setRemoteDescription(
           new RTCSessionDescription(answer),
         );
-        dispatch(setCallConnected());
       }
     };
     const onIceCandidate = async ({
@@ -257,6 +263,9 @@ export function useWebRTC() {
     }) => {
       if (pcRef.current) {
         await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+      } else {
+        // pc not ready yet (callee hasn't accepted) — queue for later
+        pendingCandidatesRef.current.push(candidate);
       }
     };
     const onRejected = () => {
