@@ -77,7 +77,8 @@ const SocketProvider = ({ children }: Props) => {
   );
 
   const handleIncomingCall = useCallback(
-    (data: { conversationId: string; from: string; callerName: string; callerAvatar: string | null; callType?: "audio" | "video" }) => {
+    (data: { conversationId: string; to: string; from: string; callerName: string; callerAvatar: string | null; callType?: "audio" | "video" }) => {
+      if (!currentUser || data.to !== currentUser.userId) return;
       dispatch(setIncomingCall({
         conversationId: data.conversationId,
         peerId: data.from,
@@ -86,7 +87,7 @@ const SocketProvider = ({ children }: Props) => {
         callType: data.callType ?? "audio",
       }));
     },
-    [dispatch],
+    [dispatch, currentUser],
   );
 
   useEffect(() => {
