@@ -17,6 +17,9 @@ export const env = cleanEnv(process.env, {
   CLOUDINARY_API_KEY: str(),
   CLOUDINARY_API_SECRET: str(),
   REDIS_URL: str(),
+  VAPID_PUBLIC_KEY: str(),
+  VAPID_PRIVATE_KEY: str(),
+  VAPID_EMAIL: str(),
 });
 
 

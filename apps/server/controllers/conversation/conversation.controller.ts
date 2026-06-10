@@ -5,6 +5,7 @@ import MessageModel, { IMessage } from "../../models/conversation/message.model"
 import { successResponse, ApiError } from "@repo/helpers";
 import { getIo } from "../../config/socket";
 import { uploadToCloudinary } from "../../services/CloudinaryService";
+import { sendPushToUser } from "../../utils/pushNotification";
 
 
 export const addNewFriend: RequestHandler = async (req, res) => {
@@ -201,6 +202,27 @@ export const sendMessage: RequestHandler = async (req, res) => {
   } catch {
     //
   }
+
+  // Push notification to offline recipients
+  const recipientIds = conversation.participants
+    .map((p) => p.toString())
+    .filter((id) => id !== req.user!.userId);
+
+  const senderName = (populated.sender as any)?.fullName ?? "Someone";
+  const notifBody =
+    contentType === "image" ? "📷 Photo" :
+    contentType === "voice" ? "🎤 Voice message" :
+    contentType === "file" ? `📄 ${resolvedFileName}` :
+    content;
+
+  recipientIds.forEach((recipientId) => {
+    sendPushToUser(recipientId, {
+      title: senderName,
+      body: notifBody,
+      icon: (populated.sender as any)?.avatar ?? "/icon-192.png",
+      data: { conversationId, type: "message" },
+    }).catch(() => {});
+  });
 
   successResponse(res, "Message sent successfully", 201, populated);
 };
