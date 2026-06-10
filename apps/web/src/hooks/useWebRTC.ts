@@ -132,7 +132,8 @@ export function useWebRTC() {
   const acceptCall = useCallback(async () => {
     const offer = pendingOfferRef.current;
     if (!offer || !callState.peerId || !callState.conversationId) return;
-    const stream = await getLocalStream();
+    // Use pre-fetched stream if available, otherwise get it now
+    const stream = localStreamRef.current ?? (await getLocalStream());
     const pc = createPeerConnection();
     stream.getTracks().forEach((t) => pc.addTrack(t, stream));
     pcRef.current = pc;
@@ -291,6 +292,13 @@ export function useWebRTC() {
       socket.off("call:ended", onEnded);
     };
   }, [cleanup, dispatch]);
+
+  // Pre-fetch media as soon as incoming call arrives so Accept is instant
+  useEffect(() => {
+    if (callState.status === "incoming" && !localStreamRef.current) {
+      getLocalStream().catch(() => {});
+    }
+  }, [callState.status, getLocalStream]);
 
   // Auto-start when outgoing call is initiated
   useEffect(() => {
