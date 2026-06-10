@@ -1,52 +1,86 @@
-# Chat App MERN
+# ChatApp — MERN Real-Time Chat
 
-A full-stack chat application built with Monorepo, React + Vite on the frontend, and Express + MongoDB + Redis + Socket.IO on the backend.
+A full-featured real-time chat application built as a **pnpm + Turborepo monorepo** with React on the frontend and Express + MongoDB + Redis + Socket.IO on the backend.
 
-## Overview
+---
 
-This repository is organized as a pnpm workspace with shared packages for ui, config and helpers.
+## Features
 
-### Tech Stack
+### Messaging
+- Real-time one-to-one messaging via Socket.IO
+- Emoji picker support
+- Voice messages (record & send audio)
+- Image & file attachments via Cloudinary
+- Message search with debounce and scroll-to-highlight
+- Delete messages with inline confirmation
 
-- Frontend: React, Vite, TypeScript, Redux Toolkit, React Router, Socket.IO client, Tailwind CSS
-- Backend: Express, TypeScript, MongoDB, Mongoose, Redis, Socket.IO, BullMQ , Cloudinary
-- Workspace tooling: pnpm, Turborepo
+### Calls (WebRTC)
+- **Audio calls** — peer-to-peer with manual Accept/Decline
+- **Video calls** — fullscreen layout with PiP local preview
+- **Screen sharing** — replace camera track mid-call, auto-reverts on browser stop
+- Ringing state when peer is online, Calling state when offline
+- Call history with audio/video badge, direction (incoming/outgoing/missed), duration
 
-### Main Features
+### Real-Time
+- Socket.IO-powered presence (online/offline indicators)
+- Typing indicators
+- Message read receipts
+- Live call signaling (offer/answer/ICE via Socket.IO relay)
 
-- User authentication
-- Conversation management
-- Send and fetch chat messages
-- Real-time socket connection support
+### Auth & Users
+- Register / Login with JWT
+- Email verification
+- Password reset via SMTP
+- User avatar upload (Cloudinary)
+- Online status sync
+
+### Infrastructure
 - Redis-backed caching and rate limiting
-- Cloudinary integration for media handling
-- Graceful server shutdown and startup health checks
+- BullMQ background job queue
+- Graceful server shutdown with health checks
+- RTK Query for client-side data fetching and cache invalidation
+
+---
+
+## Tech Stack
+
+| Layer | Technologies |
+|---|---|
+| Frontend | React 18, Vite, TypeScript, Redux Toolkit + RTK Query, React Router, Tailwind CSS v4, Socket.IO client |
+| Backend | Node.js, Express, TypeScript, MongoDB + Mongoose, Redis, Socket.IO, BullMQ, Cloudinary |
+| Monorepo | pnpm workspaces, Turborepo |
+| Shared packages | `@repo/ui`, `@repo/config`, `@repo/helpers` |
+
+---
 
 ## Project Structure
 
-```text
-.
-|-- apps
-|   |-- server
-|   |-- web
-|-- packages
-|   |-- config
-|   |-- helpers
-|   |-- ui
-|-- package.json
-|-- pnpm-workspace.yaml
-|-- turbo.json
-|-- README.md
 ```
+.
+├── apps/
+│   ├── server/          # Express API + Socket.IO server
+│   └── web/             # React + Vite frontend
+├── packages/
+│   ├── config/          # Shared env/config validation
+│   ├── helpers/         # Shared route constants, utilities
+│   └── ui/              # Shared UI components (Toast, etc.)
+├── pnpm-workspace.yaml
+├── turbo.json
+└── package.json
+```
+
+---
 
 ## Prerequisites
 
-- Node.js 18 or newer
+- Node.js >= 18
 - pnpm 9
-- MongoDB
-- Redis
+- MongoDB instance (local or Atlas)
+- Redis instance (local or cloud)
 - Cloudinary account
-- SMTP credentials for email features
+- SMTP credentials (for email verification / password reset)
+
+---
 
 ## Installation
 
@@ -54,26 +88,32 @@ This repository is organized as a pnpm workspace with shared packages for ui, co
 pnpm install
 ```
 
-## Environment Variables
+---
 
-Create the required `.env` files for the server and web app.
+## Environment Variables
 
 ### `apps/server/.env`
 
 ```env
 PORT=5000
+NODE_ENV=development
+
 MONGODB_URI=
+
+JWT_SECRET=
+
 EMAIL_USER=
 EMAIL_PASS=
-NODE_ENV=development
-JWT_SECRET=
+
 CLIENT_URL1=http://localhost:5173
 CLIENT_URL2=
 CLIENT_URL3=
 CLIENT_URL4=
+
 CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
+
 REDIS_URL=
 ```
 
@@ -84,59 +124,67 @@ VITE_API_URL=http://localhost:5000
 VITE_SOCKET_URL=http://localhost:5000
 ```
 
-## Available Scripts
-
-### Root
-
-```bash
-pnpm dev
-pnpm build
-pnpm lint
-pnpm check-types
-pnpm format
-```
-
-### Server
-
-```bash
-pnpm --filter server dev
-pnpm --filter server build
-pnpm --filter server start
-```
-
-### Web
-
-```bash
-pnpm --filter web dev
-pnpm --filter web build
-pnpm --filter web lint
-pnpm --filter web preview
-```
+---
 
 ## Running the Project
 
-1. Install dependencies with `pnpm install`.
-2. Set the environment variables in `apps/server/.env` and `apps/web/.env`.
-3. Start the development environment:
-
 ```bash
+# Install dependencies
+pnpm install
+
+# Start all apps in development mode
 pnpm dev
 ```
 
-## API Notes
+To run apps individually:
 
-The backend exposes routes under `/api/v1` including:
+```bash
+pnpm --filter server dev
+pnpm --filter web dev
+```
 
-- `/api/v1/auth`
-- `/api/v1/conversations`
+To build for production:
 
-The socket server is initialized alongside the HTTP server and the frontend connects through `VITE_SOCKET_URL`.
+```bash
+pnpm build
+```
+
+---
+
+## Available Scripts
+
+| Command | Description |
+|---|---|
+| `pnpm dev` | Start all apps in watch mode |
+| `pnpm build` | Build all apps and packages |
+| `pnpm lint` | Lint all workspaces |
+| `pnpm check-types` | TypeScript type-check all workspaces |
+| `pnpm format` | Prettier format all `.ts`/`.tsx`/`.md` files |
+
+---
+
+## API Routes
+
+All backend routes are prefixed with `/api/v1`:
+
+| Route | Description |
+|---|---|
+| `/api/v1/auth` | Register, login, logout, verify email, reset password |
+| `/api/v1/conversations` | List, create conversations; send & fetch messages |
+| `/api/v1/calls` | Call history (completed, missed, rejected) |
+| `/api/v1/users` | User profile, avatar upload, status |
+
+Socket.IO events handle real-time messaging, typing indicators, presence, and WebRTC call signaling.
+
+---
 
 ## Notes
 
-- The server uses `credentials: true` CORS configuration, so the frontend URL must match one of the allowed client URLs.
-- Redis must be reachable at startup because the server checks the Redis connection before accepting requests.
-- The repository already includes generated `dist` output and local `node_modules` folders in the working tree, but they should stay out of version control.
+- The CORS configuration uses `credentials: true` — the frontend URL must match one of the `CLIENT_URL1–4` env vars.
+- Redis must be reachable at startup; the server performs a connection check before accepting requests.
+- WebRTC signaling is relayed through the Socket.IO server — no TURN server is configured by default. For production use across strict NATs, add a TURN server to the ICE config in `useWebRTC.ts`.
+
+---
 
 ## License
 
