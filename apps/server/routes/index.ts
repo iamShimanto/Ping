@@ -5,6 +5,7 @@ import conversationRoutes from "./conversation/conversation.routes";
 import usersRoutes from "./users/users.routes";
 import bookmarkRoutes from "./bookmark/bookmark.routes";
 import callRoutes from "./call/call.routes";
+import pushRoutes from "./push/push.routes";
 const router = Router();
 
 
@@ -21,6 +22,7 @@ router.use("/api/v1/conversations", conversationRoutes);
 router.use("/api/v1/users", usersRoutes);
 router.use("/api/v1/bookmarks", bookmarkRoutes);
 router.use("/api/v1/calls", callRoutes);
+router.use("/api/v1/push", pushRoutes);
 
 router.use((req: Request, res: Response) => {
   res.status(404).send({ message: "Api enpoint not found" });

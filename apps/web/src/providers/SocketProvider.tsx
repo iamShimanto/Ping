@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useCallback } from "react";
+import { usePushNotification } from "../hooks/usePushNotification";
 import { socket } from "../socket/socket";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
@@ -21,6 +22,8 @@ const SocketProvider = ({ children }: Props) => {
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
   const currentUser = useAppSelector((s) => s.auth.user);
+
+  usePushNotification();
 
   const handleDisconnect = useCallback(
     (reason: string) => {

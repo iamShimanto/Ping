@@ -5,6 +5,7 @@ import { env } from "@repo/config";
 import User from "../models/auth/auth.models";
 import ConversationModel from "../models/conversation/conversation.models";
 import CallLog from "../models/call/callLog.model";
+import { sendPushToUser } from "../utils/pushNotification";
 
 let io: Server | null = null;
 
@@ -88,6 +89,17 @@ const registerSocketHandlers = (socket: Socket) => {
     activeCalls.set(data.conversationId, { callerId: data.from, calleeId: data.to, callType: data.callType ?? "audio", startedAt: new Date() });
     const sockets = onlineUsers.get(data.to);
     if (sockets) sockets.forEach((sid) => io!.to(sid).emit("call:incoming", data));
+
+    // Push to offline callee
+    if (!sockets || sockets.size === 0) {
+      const callTypeLabel = data.callType === "video" ? "Video" : "Audio";
+      sendPushToUser(data.to, {
+        title: `📞 Incoming ${callTypeLabel} Call`,
+        body: `${data.callerName} is calling you`,
+        icon: data.callerAvatar ?? "/icon-192.png",
+        data: { conversationId: data.conversationId, type: "call" },
+      }).catch(() => {});
+    }
   });
 
   socket.on("call:offer", (data: { conversationId: string; to: string; offer: object }) => {
