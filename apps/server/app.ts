@@ -7,12 +7,14 @@ import morgan from "morgan";
 const dns = require("dns");
 import { env } from "@repo/config";
 import { errorHandler } from "./middleware/errorHandler";
+import passport from "./config/passport";
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 dns.setServers(["1.1.1.1", "1.0.0.1"]);
 app.set("trust proxy", 1);
 app.use(cookieParser());
+app.use(passport.initialize());
 app.use(morgan("dev"));
 app.use(
   cors({

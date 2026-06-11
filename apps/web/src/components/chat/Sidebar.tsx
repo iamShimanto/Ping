@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from "react-router";
 import { useState } from "react";
 import {
   RiMessage3Line, RiContactsLine, RiPhoneLine,
-  RiBookmarkLine, RiSettings3Line, RiUser3Line, RiSunLine,
+  RiBookmarkLine, RiSettings3Line, RiUser3Line,
 } from "react-icons/ri";
 import { useAppSelector } from "../../store/hooks";
 import { authApi } from "../../api/auth/authAPi";
@@ -30,8 +30,7 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* ── Desktop / Tablet: vertical left rail ── */}
-      <div className="hidden sm:flex w-[70px] bg-[#2a3042] flex-col items-center py-4 h-full relative flex-shrink-0">
+      <div className="hidden sm:flex w-17.5 bg-[#2a3042] flex-col items-center py-4 h-full relative shrink-0">
         <div className="flex flex-col gap-1 flex-1">
           {navItems.map(({ to, icon: Icon }) => (
             <NavLink
@@ -45,7 +44,7 @@ export default function Sidebar() {
               {({ isActive }) => (
                 <>
                   {isActive && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[#7269ef] rounded-r-full -ml-2" />
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.75 h-5 bg-[#7269ef] rounded-r-full -ml-2" />
                   )}
                   <Icon size={20} />
                 </>
@@ -55,9 +54,9 @@ export default function Sidebar() {
         </div>
 
         <div className="flex flex-col items-center gap-3 mt-auto">
-          <button className="text-[#6b7280] hover:text-[#a3aed0] w-10 h-10 flex items-center justify-center">
+          {/* <button className="text-[#6b7280] hover:text-[#a3aed0] w-10 h-10 flex items-center justify-center">
             <RiSunLine size={20} />
-          </button>
+          </button> */}
           <div className="relative">
             <button onClick={() => setShowMenu(!showMenu)} className="focus:outline-none">
               <Avatar
@@ -80,9 +79,6 @@ export default function Sidebar() {
                     className="flex items-center justify-between px-4 py-2.5 text-sm text-[#a3aed0] hover:bg-[#374151]">
                     Setting <RiSettings3Line size={16} />
                   </NavLink>
-                  <button className="flex items-center justify-between w-full px-4 py-2.5 text-sm text-[#a3aed0] hover:bg-[#374151]">
-                    Change Password <span>🔒</span>
-                  </button>
                   <button onClick={handleLogout}
                     className="flex items-center justify-between w-full px-4 py-2.5 text-sm text-[#a3aed0] hover:bg-[#374151]">
                     Log out <span>↩</span>
@@ -94,7 +90,6 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* ── Mobile: fixed bottom tab bar ── */}
       <div className="sm:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#2a3042] border-t border-[#323a4d] flex items-center justify-around px-2 py-1 safe-area-pb">
         {navItems.map(({ to, icon: Icon }) => (
           <NavLink
@@ -130,9 +125,6 @@ export default function Sidebar() {
                 className="flex items-center justify-between px-4 py-3 text-sm text-[#a3aed0] hover:bg-[#374151]">
                 Setting <RiSettings3Line size={16} />
               </NavLink>
-              <button className="flex items-center justify-between w-full px-4 py-3 text-sm text-[#a3aed0] hover:bg-[#374151]">
-                Change Password <span>🔒</span>
-              </button>
               <button onClick={handleLogout}
                 className="flex items-center justify-between w-full px-4 py-3 text-sm text-red-400 hover:bg-[#374151]">
                 Log out <span>↩</span>

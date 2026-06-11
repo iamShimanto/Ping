@@ -73,13 +73,13 @@ export default function ChatsPanel({ selectedId, onSelect }: ChatsPanelProps) {
 
   return (
     <>
-      <div className="w-full sm:w-[300px] bg-[#2a3042] flex flex-col h-full border-r border-[#323a4d] flex-shrink-0">
+      <div className="w-full sm:w-75 bg-[#2a3042] flex flex-col h-full border-r border-[#323a4d] shrink-0">
         {/* Header */}
         <div className="px-4 sm:px-5 pt-4 sm:pt-5 pb-3 flex items-center justify-between">
           <h2 className="text-white font-semibold text-base">Chats</h2>
           <button
             onClick={() => setShowAddFriend(true)}
-            className="w-7 h-7 bg-[#7269ef] rounded flex items-center justify-center text-white hover:bg-[#6055d8]"
+            className="w-7 h-7 bg-[#7269ef] rounded flex items-center justify-center text-white hover:bg-[#6055d8] cursor-pointer"
           >
             <RiAddLine size={16} />
           </button>
@@ -94,7 +94,7 @@ export default function ChatsPanel({ selectedId, onSelect }: ChatsPanelProps) {
               placeholder="Search here.."
               className="flex-1 bg-transparent text-sm text-[#a3aed0] placeholder-[#6b7280] outline-none min-w-0"
             />
-            <RiSearchLine size={16} className="text-[#6b7280] flex-shrink-0" />
+            <RiSearchLine size={16} className="text-[#6b7280] shrink-0" />
           </div>
         </div>
 
@@ -117,7 +117,7 @@ export default function ChatsPanel({ selectedId, onSelect }: ChatsPanelProps) {
                   <button
                     key={convId}
                     onClick={() => onSelect(convId)}
-                    className={`w-full flex items-center gap-3 px-2 py-2.5 sm:py-2 rounded-lg transition-colors text-left
+                    className={`w-full flex items-center gap-3 px-2 py-2.5 sm:py-2 rounded-lg transition-colors text-left cursor-pointer
                       ${selectedId === convId ? "bg-[#7269ef]" : "hover:bg-[#323a4d] active:bg-[#323a4d]"}`}
                   >
                     <Avatar

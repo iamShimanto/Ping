@@ -13,6 +13,7 @@ export const env = cleanEnv(process.env, {
   CLIENT_URL2: url(),
   CLIENT_URL3: url(),
   CLIENT_URL4: url(),
+  SERVER_URL: url(),
   CLOUDINARY_CLOUD_NAME: str(),
   CLOUDINARY_API_KEY: str(),
   CLOUDINARY_API_SECRET: str(),
@@ -20,6 +21,10 @@ export const env = cleanEnv(process.env, {
   VAPID_PUBLIC_KEY: str(),
   VAPID_PRIVATE_KEY: str(),
   VAPID_EMAIL: str(),
+  GOOGLE_CLIENT_ID: str(),
+  GOOGLE_CLIENT_SECRET: str(),
+  GITHUB_CLIENT_ID: str(),
+  GITHUB_CLIENT_SECRET: str(),
 });
 
 

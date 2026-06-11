@@ -7,7 +7,7 @@ const router = Router();
 
 router.use(authMiddleWare);
 
-router.get("/search",    asyncHandler(conv.searchUsers));
-router.get("/:userId",   asyncHandler(conv.getUserProfile));
+router.get("/search", asyncHandler(conv.searchUsers));
+router.get("/:userId", asyncHandler(conv.getUserProfile));
 
 export default router;
