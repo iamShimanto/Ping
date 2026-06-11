@@ -25,7 +25,7 @@ type UserModel = Model<IUser, {}, IUserMethods>;
 
 const userSchema = new Schema<IUser, UserModel, IUserMethods>(
   {
-    fullName: { type: String, required: true, unique: true },
+    fullName: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String },
     googleId: { type: String, sparse: true, unique: true },
