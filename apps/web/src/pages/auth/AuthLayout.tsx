@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -43,7 +44,13 @@ const HeroIllustration = () => (
       <circle cx="130" cy="88" r="32" fill="#4CAF82" />
       <circle cx="118" cy="82" r="4" fill="white" />
       <circle cx="142" cy="82" r="4" fill="white" />
-      <path d="M115 98 Q130 112 145 98" stroke="white" strokeWidth="3" strokeLinecap="round" fill="none" />
+      <path
+        d="M115 98 Q130 112 145 98"
+        stroke="white"
+        strokeWidth="3"
+        strokeLinecap="round"
+        fill="none"
+      />
       {/* Person body */}
       <circle cx="120" cy="220" r="18" fill="#2d2d2d" />
       {/* Hair */}
@@ -51,12 +58,44 @@ const HeroIllustration = () => (
       {/* Body */}
       <rect x="100" y="238" width="40" height="50" rx="8" fill="#4a7c59" />
       {/* Left arm up */}
-      <line x1="100" y1="248" x2="70" y2="185" stroke="#4a7c59" strokeWidth="10" strokeLinecap="round" />
+      <line
+        x1="100"
+        y1="248"
+        x2="70"
+        y2="185"
+        stroke="#4a7c59"
+        strokeWidth="10"
+        strokeLinecap="round"
+      />
       {/* Right arm up */}
-      <line x1="140" y1="248" x2="160" y2="185" stroke="#4a7c59" strokeWidth="10" strokeLinecap="round" />
+      <line
+        x1="140"
+        y1="248"
+        x2="160"
+        y2="185"
+        stroke="#4a7c59"
+        strokeWidth="10"
+        strokeLinecap="round"
+      />
       {/* Legs */}
-      <line x1="110" y1="288" x2="100" y2="315" stroke="#1a1a1a" strokeWidth="10" strokeLinecap="round" />
-      <line x1="130" y1="288" x2="138" y2="315" stroke="#1a1a1a" strokeWidth="10" strokeLinecap="round" />
+      <line
+        x1="110"
+        y1="288"
+        x2="100"
+        y2="315"
+        stroke="#1a1a1a"
+        strokeWidth="10"
+        strokeLinecap="round"
+      />
+      <line
+        x1="130"
+        y1="288"
+        x2="138"
+        y2="315"
+        stroke="#1a1a1a"
+        strokeWidth="10"
+        strokeLinecap="round"
+      />
       {/* Shoes */}
       <ellipse cx="96" cy="316" rx="10" ry="5" fill="#1a1a1a" />
       <ellipse cx="140" cy="316" rx="10" ry="5" fill="#1a1a1a" />
@@ -77,7 +116,9 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => (
             </div>
             <span className="text-xl font-bold tracking-wide">Doot</span>
           </div>
-          <p className="text-white/70 text-xs mt-1 ml-10">Responsive Bootstrap 5 Chat App</p>
+          <p className="text-white/70 text-xs mt-1 ml-10">
+            Responsive Bootstrap 5 Chat App
+          </p>
         </div>
         <Blobs />
         <HeroIllustration />
@@ -89,7 +130,21 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => (
           <div className="w-full max-w-sm">{children}</div>
         </div>
         <div className="text-center text-xs text-gray-400 py-4">
-          © 2026 Doot. Crafted with <span className="text-red-400">♥</span> by Themesbrand
+          <p className="text-sm text-gray-500">
+            © {new Date().getFullYear()} Ping. Made with{" "}
+            <span className="text-red-400" aria-hidden="true">
+              ♥
+            </span>{" "}
+            by{" "}
+            <Link
+              to="https://shimanto.dev"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:text-gray-700 transition-colors"
+            >
+              Shimanto
+            </Link>
+          </p>
         </div>
       </div>
     </div>

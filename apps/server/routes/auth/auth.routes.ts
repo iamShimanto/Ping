@@ -1,8 +1,10 @@
 import { Router } from "express";
 import * as authController from "../../controllers/auth/auth.controller";
+import { oauthCallback } from "../../controllers/auth/oauth.controller";
 import { asyncHandler } from "@repo/helpers";
 import { rateLimit } from "../../utils/rateLimit";
 import { authMiddleWare } from "../../middleware/auth.middleware";
+import passport from "../../config/passport";
 import multer from "multer";
 const upload = multer();
 
@@ -42,6 +44,22 @@ router.patch(
   "/update-status",
   authMiddleWare,
   asyncHandler(authController.updateStatus),
+);
+
+// ─── Google OAuth
+router.get("/google", passport.authenticate("google", { scope: ["profile", "email"], session: false }));
+router.get(
+  "/google/callback",
+  passport.authenticate("google", { session: false, failureRedirect: "/login?error=oauth_failed" }),
+  asyncHandler(oauthCallback)
+);
+
+// ─── GitHub OAuth
+router.get("/github", passport.authenticate("github", { scope: ["user:email"], session: false }));
+router.get(
+  "/github/callback",
+  passport.authenticate("github", { session: false, failureRedirect: "/login?error=oauth_failed" }),
+  asyncHandler(oauthCallback)
 );
 
 export default router;

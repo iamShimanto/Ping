@@ -12,6 +12,8 @@ export const ROUTES = {
     changePassword: `${base}/auth/change-password`,
     updateProfile: `${base}/auth/update-profile`,
     updateStatus: `${base}/auth/update-status`,
+    googleOAuth: `${base}/auth/google`,
+    githubOAuth: `${base}/auth/github`,
   },
   conversations: {
     addNewFriend: `${base}/conversations/add-new-friend`,
