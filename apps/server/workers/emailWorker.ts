@@ -4,9 +4,9 @@ import { env } from "@repo/config";
 import type { EmailJobData, EmailJobName } from "../queues/emailQueue";
 
 const transporter = nodemailer.createTransport({
-  host: "smtp.hostinger.com",
-  port: 465,
-  secure: true,
+  host: env.SMTP_HOST,
+  port: env.SMTP_PORT,
+  secure: env.SMTP_SECURE,
   auth: {
     user: env.EMAIL_USER,
     pass: env.EMAIL_PASS,
