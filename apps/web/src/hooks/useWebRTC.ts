@@ -13,7 +13,8 @@ const ICE_SERVERS = {
       urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"],
     },
     {
-      urls: "turn:ping-server.shimanto.dev:3478",
+      urls:
+        import.meta.env.VITE_WEBRTC_URL ?? "turn:ping.shimantosarkar.dev:3478",
       username: import.meta.env.VITE_WEBRTC_USERNAME,
       credential: import.meta.env.VITE_WEBRTC_CREDENTIAL,
     },
