@@ -29,7 +29,6 @@ A full-featured real-time chat application built as a **pnpm + Turborepo monorep
 
 ### Auth & Users
 - Register / Login with JWT
-- Email verification
 - Password reset via SMTP
 - User avatar upload (Cloudinary)
 - Online status sync
@@ -37,7 +36,8 @@ A full-featured real-time chat application built as a **pnpm + Turborepo monorep
 ### Infrastructure
 - Redis-backed caching and rate limiting
 - BullMQ background job queue
-- Graceful server shutdown with health checks
+- Graceful server shutdown
+- `GET /health` readiness probe reporting MongoDB/Redis status
 - RTK Query for client-side data fetching and cache invalidation
 
 ---
@@ -46,7 +46,7 @@ A full-featured real-time chat application built as a **pnpm + Turborepo monorep
 
 | Layer | Technologies |
 |---|---|
-| Frontend | React 18, Vite, TypeScript, Redux Toolkit + RTK Query, React Router, Tailwind CSS v4, Socket.IO client |
+| Frontend | React 19, Vite, TypeScript, Redux Toolkit + RTK Query, React Router, Tailwind CSS v4, Socket.IO client |
 | Backend | Node.js, Express, TypeScript, MongoDB + Mongoose, Redis, Socket.IO, BullMQ, Cloudinary |
 | Monorepo | pnpm workspaces, Turborepo |
 | Shared packages | `@repo/ui`, `@repo/config`, `@repo/helpers` |
@@ -78,7 +78,7 @@ A full-featured real-time chat application built as a **pnpm + Turborepo monorep
 - MongoDB instance (local or Atlas)
 - Redis instance (local or cloud)
 - Cloudinary account
-- SMTP credentials (for email verification / password reset)
+- SMTP credentials (for password-reset + welcome emails)
 
 ---
 
@@ -110,19 +110,39 @@ CLIENT_URL2=
 CLIENT_URL3=
 CLIENT_URL4=
 
+SERVER_URL=http://localhost:5000
+
 CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
 
 REDIS_URL=
+
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_EMAIL=mailto:you@example.com
+
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
 ```
+
+> Full list with comments: see `apps/server/.env.example`. Only `CLIENT_URL1` is
+> required — `CLIENT_URL2–4` are optional extra allowed origins.
 
 ### `apps/web/.env`
 
 ```env
 VITE_API_URL=http://localhost:5000
 VITE_SOCKET_URL=http://localhost:5000
+VITE_VAPID_PUBLIC_KEY=
+VITE_WEBRTC_USERNAME=
+VITE_WEBRTC_CREDENTIAL=
 ```
+
+> Full list with comments: see `apps/web/.env.example`. These are build-time
+> vars, baked into the bundle — set them **before** `pnpm build`.
 
 ---
 
@@ -169,7 +189,7 @@ All backend routes are prefixed with `/api/v1`:
 
 | Route | Description |
 |---|---|
-| `/api/v1/auth` | Register, login, logout, verify email, reset password |
+| `/api/v1/auth` | Register, login, logout, reset password |
 | `/api/v1/conversations` | List, create conversations; send & fetch messages |
 | `/api/v1/calls` | Call history (completed, missed, rejected) |
 | `/api/v1/users` | User profile, avatar upload, status |
@@ -182,7 +202,7 @@ Socket.IO events handle real-time messaging, typing indicators, presence, and We
 
 - The CORS configuration uses `credentials: true` — the frontend URL must match one of the `CLIENT_URL1–4` env vars.
 - Redis must be reachable at startup; the server performs a connection check before accepting requests.
-- WebRTC signaling is relayed through the Socket.IO server — no TURN server is configured by default. For production use across strict NATs, add a TURN server to the ICE config in `useWebRTC.ts`.
+- WebRTC signaling is relayed through the Socket.IO server. Calls also use a TURN relay hardcoded in `useWebRTC.ts` (`turn:ping-server.shimanto.dev:3478`, credentials via `VITE_WEBRTC_*`) — that host is not provisioned by this repo, so verify it is reachable (or point the ICE config at your own coturn) before relying on calls across strict NATs.
 
 ---
 

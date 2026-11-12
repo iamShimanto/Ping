@@ -17,14 +17,15 @@ export const imageWorker = new Worker<ImageJobData, void, ImageJobName>(
     // type === "upload"
     const dataUrl = `data:${data.mimetype};base64,${data.fileBuffer}`;
 
-    // Delete old image first if exists
-    if (data.oldPublicId) {
-      await cloudinary.uploader.destroy(data.oldPublicId);
-    }
-
+    // Upload FIRST — only delete the old avatar after the new one succeeds,
+    // so a failed upload never leaves the user with no avatar at all.
     const result = await cloudinary.uploader.upload(dataUrl, {
       folder: data.folder,
     });
+
+    if (data.oldPublicId) {
+      await cloudinary.uploader.destroy(data.oldPublicId).catch(() => {});
+    }
 
     // Persist new avatar back to user
     await User.findByIdAndUpdate(data.userId, {

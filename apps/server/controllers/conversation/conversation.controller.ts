@@ -242,11 +242,15 @@ export const getMessages: RequestHandler = async (req, res) => {
   const [messages, total] = await Promise.all([
     MessageModel.find({ conversation: conversationId, isDeleted: false })
       .populate("sender", "fullName email avatar")
-      .sort({ createdAt: 1 })
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit),
     MessageModel.countDocuments({ conversation: conversationId, isDeleted: false }),
   ]);
+
+  // Pages run newest-first (page 1 = newest messages); return this page in
+  // chronological order so the client can prepend older pages above it.
+  messages.reverse();
 
   successResponse(res, "Messages retrieved successfully", 200, {
     messages,
@@ -289,12 +293,16 @@ export const markMessageRead: RequestHandler = async (req, res) => {
   const { messageId } = req.params;
   const userId = req.user!.userId;
 
-  const message = await MessageModel.findByIdAndUpdate(
-    messageId,
-    { $addToSet: { readBy: userId } },
-    { new: true }
-  );
+  const message = await MessageModel.findById(messageId);
   if (!message) throw new ApiError(404, "Message not found");
+
+  const isParticipant = await ConversationModel.exists({
+    _id: message.conversation,
+    participants: userId,
+  });
+  if (!isParticipant) throw new ApiError(403, "You are not a participant of this conversation");
+
+  await MessageModel.findByIdAndUpdate(messageId, { $addToSet: { readBy: userId } });
 
   successResponse(res, "Message marked as read", 200, { messageId });
 };
@@ -350,6 +358,12 @@ export const reactToMessage: RequestHandler = async (req, res) => {
   const message = await MessageModel.findById(messageId);
   if (!message) throw new ApiError(404, "Message not found");
 
+  const isParticipant = await ConversationModel.exists({
+    _id: message.conversation,
+    participants: userId,
+  });
+  if (!isParticipant) throw new ApiError(403, "You are not a participant of this conversation");
+
   const existingIdx = message.reactions.findIndex((r) => r.user.toString() === String(userId) && r.emoji === emoji);
 
   if (existingIdx >= 0) {
@@ -400,6 +414,12 @@ export const likeMessage: RequestHandler = async (req, res) => {
 
   const message = await MessageModel.findById(messageId);
   if (!message) throw new ApiError(404, "Message not found");
+
+  const isParticipant = await ConversationModel.exists({
+    _id: message.conversation,
+    participants: userId,
+  });
+  if (!isParticipant) throw new ApiError(403, "You are not a participant of this conversation");
 
   const alreadyLiked = message.likes.some((id) => id.toString() === String(userId));
   const update = alreadyLiked

@@ -27,7 +27,7 @@ const userSchema = new Schema<IUser, UserModel, IUserMethods>(
   {
     fullName: { type: String, required: true },
     email: { type: String, required: true, unique: true },
-    password: { type: String },
+    password: { type: String, minlength: 8 },
     googleId: { type: String, sparse: true, unique: true },
     githubId: { type: String, sparse: true, unique: true },
     avatar: { type: String },

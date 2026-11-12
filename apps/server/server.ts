@@ -69,7 +69,13 @@ async function startServer() {
     await dbConfig.connect();
     console.log("MongoDb connencted Successfully");
 
-    await redis.ping();
+    // Redis ping with an explicit timeout so dead Redis fails fast.
+    await Promise.race([
+      redis.ping(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Redis ping timed out after 10s")), 10_000),
+      ),
+    ]);
 
     const httpServer = http.createServer(app);
     await initSocketServer(httpServer);

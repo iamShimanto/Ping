@@ -43,6 +43,9 @@ export const register: RequestHandler = async (req, res) => {
   if (!fullName?.trim() || !email?.trim() || !password) {
     throw new ApiError(400, "fullName, email and password are required");
   }
+  if (password.length < 8) {
+    throw new ApiError(400, "Password must be at least 8 characters");
+  }
 
   const existing = await User.findOne({ email: email.toLowerCase() });
   if (existing) throw new ApiError(409, "Email is already registered");
@@ -177,8 +180,8 @@ export const changePassword: RequestHandler = async (req, res) => {
   if (!currentPassword || !newPassword) {
     throw new ApiError(400, "currentPassword and newPassword are required");
   }
-  if (newPassword.length < 6) {
-    throw new ApiError(400, "New password must be at least 6 characters");
+  if (newPassword.length < 8) {
+    throw new ApiError(400, "New password must be at least 8 characters");
   }
 
   const user = await User.findById((req.user as ITokenPayload)?.userId);
@@ -237,8 +240,8 @@ export const resetPassword: RequestHandler = async (req, res) => {
   if (!token || !newPassword) {
     throw new ApiError(400, "token and newPassword are required");
   }
-  if (newPassword.length < 6) {
-    throw new ApiError(400, "Password must be at least 6 characters");
+  if (newPassword.length < 8) {
+    throw new ApiError(400, "Password must be at least 8 characters");
   }
 
   const userId = await getCache<string>(`pwd_reset:${token}`);

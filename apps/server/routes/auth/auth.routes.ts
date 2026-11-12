@@ -6,7 +6,16 @@ import { rateLimit } from "../../utils/rateLimit";
 import { authMiddleWare } from "../../middleware/auth.middleware";
 import passport from "../../config/passport";
 import multer from "multer";
-const upload = multer();
+import { ApiError } from "@repo/helpers";
+
+// Avatar uploads: images only, max 5 MB (buffered in memory by multer).
+const upload = multer({
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) return cb(null, true);
+    cb(new ApiError(400, "Only image files are allowed for avatars"));
+  },
+});
 
 const router = Router();
 

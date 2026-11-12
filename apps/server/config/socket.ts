@@ -30,6 +30,28 @@ const removeOnlineUser = (userId: string, socketId: string) => {
 export const isUserOnline = (userId: string): boolean =>
   onlineUsers.has(userId) && onlineUsers.get(userId)!.size > 0;
 
+// True when userId is a participant of the conversation (invalid ids → false).
+const isParticipant = async (conversationId: string, userId: string): Promise<boolean> => {
+  try {
+    return (await ConversationModel.exists({ _id: conversationId, participants: userId })) !== null;
+  } catch {
+    return false;
+  }
+};
+
+// True when every userId in the list participates in the conversation.
+const areParticipants = async (conversationId: string, userIds: string[]): Promise<boolean> => {
+  try {
+    const conv = await ConversationModel.findOne(
+      { _id: conversationId, participants: { $all: userIds } },
+      { _id: 1 },
+    ).lean();
+    return conv !== null;
+  } catch {
+    return false;
+  }
+};
+
 export const getOnlineUsers = (): string[] => Array.from(onlineUsers.keys());
 
 const registerSocketHandlers = (socket: Socket) => {
@@ -53,87 +75,115 @@ const registerSocketHandlers = (socket: Socket) => {
     socket.leave(conversationId);
   });
 
-  // ── Typing indicators
+  // ── Typing indicators (only participants of the conversation)
   socket.on(
     "typing:start",
-    ({ conversationId }: { conversationId: string }) => {
+    async ({ conversationId }: { conversationId: string }) => {
+      if (!(await isParticipant(conversationId, userId))) return;
       socket.to(conversationId).emit("typing:start", { userId, conversationId });
     }
   );
 
   socket.on(
     "typing:stop",
-    ({ conversationId }: { conversationId: string }) => {
+    async ({ conversationId }: { conversationId: string }) => {
+      if (!(await isParticipant(conversationId, userId))) return;
       socket.to(conversationId).emit("typing:stop", { userId, conversationId });
     }
   );
 
-  // ── Message read receipts
+  // ── Message read receipts (only participants of the conversation)
   socket.on(
     "message:read",
-    ({
+    async ({
       messageId,
       conversationId,
     }: {
       messageId: string;
       conversationId: string;
     }) => {
+      if (!(await isParticipant(conversationId, userId))) return;
       socket.to(conversationId).emit("message:read", { messageId, userId, conversationId });
     }
   );
 
   // ── WebRTC call signaling
+  // Caller identity is NEVER taken from the client: it is derived from the
+  // authenticated socket (socket.data.userId) and looked up in the DB, and
+  // both parties must be participants of the conversation.
 
-  socket.on("call:initiate", (data: { conversationId: string; to: string; from: string; callerName: string; callerAvatar: string | null; callType?: "audio" | "video" }) => {
+  socket.on("call:initiate", async (data: { conversationId: string; to: string; callType?: "audio" | "video" }) => {
+    const { conversationId, to } = data;
+    const callType = data.callType ?? "audio";
+    if (!conversationId || !to || to === userId) return;
+    if (!(await areParticipants(conversationId, [userId, to]))) return;
+
+    const caller = await User.findById(userId).select("fullName avatar").lean();
+    if (!caller) return;
+
+    const outgoing = {
+      conversationId,
+      to,
+      from: userId,
+      callerName: caller.fullName,
+      callerAvatar: caller.avatar ?? null,
+      callType,
+    };
+
     // Record call start — will be saved as "missed" unless answered/ended properly
-    activeCalls.set(data.conversationId, { callerId: data.from, calleeId: data.to, callType: data.callType ?? "audio", startedAt: new Date() });
-    const sockets = onlineUsers.get(data.to);
-    if (sockets) sockets.forEach((sid) => io!.to(sid).emit("call:incoming", data));
+    activeCalls.set(conversationId, { callerId: userId, calleeId: to, callType, startedAt: new Date() });
+    const sockets = onlineUsers.get(to);
+    if (sockets) sockets.forEach((sid) => io!.to(sid).emit("call:incoming", outgoing));
 
     // Push to offline callee
     if (!sockets || sockets.size === 0) {
-      const callTypeLabel = data.callType === "video" ? "Video" : "Audio";
-      sendPushToUser(data.to, {
+      const callTypeLabel = callType === "video" ? "Video" : "Audio";
+      sendPushToUser(to, {
         title: `📞 Incoming ${callTypeLabel} Call`,
-        body: `${data.callerName} is calling you`,
-        icon: data.callerAvatar ?? "/icon-192.png",
-        data: { conversationId: data.conversationId, type: "call" },
+        body: `${caller.fullName} is calling you`,
+        icon: caller.avatar ?? "/icon-192.png",
+        data: { conversationId, type: "call" },
       }).catch(() => {});
     }
   });
 
-  socket.on("call:offer", (data: { conversationId: string; to: string; offer: object }) => {
+  socket.on("call:offer", async (data: { conversationId: string; to: string; offer: object }) => {
+    if (!(await areParticipants(data.conversationId, [userId, data.to]))) return;
     const sockets = onlineUsers.get(data.to);
-    if (sockets) sockets.forEach((sid) => io!.to(sid).emit("call:offer", data));
+    if (sockets) sockets.forEach((sid) => io!.to(sid).emit("call:offer", { ...data, from: userId }));
   });
 
-  socket.on("call:answer", (data: { conversationId: string; to: string; answer: object }) => {
+  socket.on("call:answer", async (data: { conversationId: string; to: string; answer: object }) => {
+    if (!(await areParticipants(data.conversationId, [userId, data.to]))) return;
     const sockets = onlineUsers.get(data.to);
-    if (sockets) sockets.forEach((sid) => io!.to(sid).emit("call:answer", data));
+    if (sockets) sockets.forEach((sid) => io!.to(sid).emit("call:answer", { ...data, from: userId }));
   });
 
-  socket.on("call:ice-candidate", (data: { conversationId: string; to: string; candidate: object }) => {
+  socket.on("call:ice-candidate", async (data: { conversationId: string; to: string; candidate: object }) => {
+    if (!(await areParticipants(data.conversationId, [userId, data.to]))) return;
     const sockets = onlineUsers.get(data.to);
-    if (sockets) sockets.forEach((sid) => io!.to(sid).emit("call:ice-candidate", data));
+    if (sockets) sockets.forEach((sid) => io!.to(sid).emit("call:ice-candidate", { ...data, from: userId }));
   });
 
-  socket.on("call:reject", (data: { conversationId: string; to: string }) => {
+  socket.on("call:reject", async (data: { conversationId: string; to: string }) => {
+    if (!(await areParticipants(data.conversationId, [userId, data.to]))) return;
     const sockets = onlineUsers.get(data.to);
-    if (sockets) sockets.forEach((sid) => io!.to(sid).emit("call:rejected", data));
+    if (sockets) sockets.forEach((sid) => io!.to(sid).emit("call:rejected", { ...data, from: userId }));
     // Save rejected call log
     const active = activeCalls.get(data.conversationId);
-    if (active) {
+    if (active && (userId === active.calleeId || userId === active.callerId)) {
       CallLog.create({ conversationId: data.conversationId, caller: active.callerId, callee: active.calleeId, callType: active.callType, status: "rejected", startedAt: active.startedAt, durationSec: 0 }).catch(() => {});
       activeCalls.delete(data.conversationId);
     }
   });
 
-  socket.on("call:end", (data: { conversationId: string; to: string }) => {
+  socket.on("call:end", async (data: { conversationId: string; to: string }) => {
+    if (!(await areParticipants(data.conversationId, [userId, data.to]))) return;
     const sockets = onlineUsers.get(data.to);
-    if (sockets) sockets.forEach((sid) => io!.to(sid).emit("call:ended", data));
+    if (sockets) sockets.forEach((sid) => io!.to(sid).emit("call:ended", { ...data, from: userId }));
     // Save completed or missed call log
     const active = activeCalls.get(data.conversationId);
-    if (active) {
+    if (active && (userId === active.calleeId || userId === active.callerId)) {
       const endedAt = new Date();
       const durationSec = Math.round((endedAt.getTime() - active.startedAt.getTime()) / 1000);
       const status = durationSec > 2 ? "completed" : "missed";
@@ -195,6 +245,12 @@ export const initSocketServer = (httpServer: HttpServer): Server => {
 
     addOnlineUser(userId, socket.id);
 
+    // Register handlers FIRST, synchronously: the DB work below awaits, and
+    // any event the client emits in that window would otherwise be dropped
+    // silently (no listener registered yet) — e.g. a call started the
+    // instant the socket connects would never ring.
+    registerSocketHandlers(socket);
+
     // Mark user as online in DB
     try {
       await User.findByIdAndUpdate(userId, { status: "online" });
@@ -218,8 +274,6 @@ export const initSocketServer = (httpServer: HttpServer): Server => {
     socket.broadcast.emit("user:online", { userId });
 
     console.log(`Socket connected: ${socket.id} (userId: ${userId})`);
-
-    registerSocketHandlers(socket);
   });
 
   console.log("Socket.IO server initialized");

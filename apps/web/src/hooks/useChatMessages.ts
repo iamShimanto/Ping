@@ -106,7 +106,9 @@ export function useChatMessages(contactId: string, messagesEndRef: React.RefObje
   const [fetchMessages] = useLazyGetMessagesQuery();
   const [markAllRead] = useMarkAllReadMutation();
 
-  // Load first page when conversation changes
+  // Load first page (newest messages) when conversation changes.
+  // Server contract: page 1 = newest page, each page returned in
+  // chronological order; scrolling up prepends older pages above it.
   useEffect(() => {
     if (!contactId) return;
     dispatchMsg({ type: "reset" });
