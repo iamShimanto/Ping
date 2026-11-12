@@ -29,7 +29,7 @@ router.post(
   rateLimit({ limit: 10, windowSec: 5 * 60, keyPrefix: "rl:login" }),
   asyncHandler(authController.login),
 );
-router.post("/logout", asyncHandler(authController.logout));
+router.post("/logout", authMiddleWare, asyncHandler(authController.logout));
 router.post("/refresh", asyncHandler(authController.refreshToken));
 router.get("/me", authMiddleWare, asyncHandler(authController.getCurrentUser));
 router.post(
